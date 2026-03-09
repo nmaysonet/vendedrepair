@@ -170,7 +170,7 @@
         window.onload = function() {
             fetch('master_data.xlsx?v=' + new Date().getTime())
                 .then(response => {
-                    if (!response.ok) throw new Error("Could not find master_data.xlsx in repository.");
+                    if (!response.ok) throw new Error("Could not find master_data.xlsx.");
                     return response.arrayBuffer();
                 })
                 .then(buffer => {
@@ -179,10 +179,7 @@
                     processWorkbook(workbook);
                 })
                 .catch(error => {
-                    document.getElementById('loadingBanner').innerHTML = `
-                        <span style="color: var(--red-text);">❌ Error Loading File</span><br>
-                        <span style="font-size: 0.9rem; font-weight: normal;">Ensure 'master_data.xlsx' is uploaded in the same folder as this page on GitHub.</span>
-                    `;
+                    document.getElementById('loadingBanner').innerHTML = `<span style="color: var(--red-text);">❌ Error Loading master_data.xlsx</span>`;
                 });
         };
 
@@ -244,7 +241,7 @@
             return (str || '').toString().replace(/\s+\d+-\d+$/, '').trim();
         }
 
-        // UPDATED REGEX: Handles trailing whitespace found in Region Owner tab
+        // ADDED HELPER: Extracts the site code (e.g., 190-67) to match branches accurately
         function extractSiteCode(str) {
             const match = (str || '').toString().match(/(\d+-\d+)\s*$/);
             return match ? match[1] : null;
@@ -271,10 +268,15 @@
                     if (cid && cidToOwner[cid.toString().trim().toUpperCase()]) {
                         unitToOwner[normUnit] = cidToOwner[cid.toString().trim().toUpperCase()];
                     }
-                    unitToLocation[normUnit] = { region: reg.toString().trim(), subregion: sub.toString().trim(), branch: cleanBranchName(br), siteCode: extractSiteCode(br) };
+                    unitToLocation[normUnit] = { 
+                        region: reg ? reg.toString().trim() : 'Unknown Region', 
+                        subregion: sub ? sub.toString().trim() : 'Unknown Subregion', 
+                        branch: br ? cleanBranchName(br) : 'Unknown Branch'
+                    };
                 }
             });
 
+            // FIXED BRANCH MAPPING: Map Site Codes to Owners for accurate matching
             const codeToOwner = {};
             const branchToOwnerFallback = {};
             regionOwnerData.forEach(row => {
@@ -311,7 +313,9 @@
                 let unitNumRaw = getSafeVal(vro, ['Unit No', 'UNIT NO', 'Unit', 'Vehicle', 'UNITNUMBER']);
                 let unitNum = normalizeString(unitNumRaw);
                 let orderNumRaw = getSafeVal(vro, ['Order', 'ORDER', 'Order No', 'RONUM']).toString().trim();
-                if (!status || !unitNum || status.includes('CREDIT VRO')) return;
+                if (!status || !unitNum) return;
+                if (status.includes('CREDIT VRO')) return;
+
                 let assignedTo = null;
                 let activeUnitForLoc = unitNum;
                 if (ownerRaw.includes('kanguzza') || ownerRaw.includes('kevin anguzza')) { assignedTo = 'Kevin Anguzza'; } 
@@ -327,12 +331,12 @@
                         const loc = unitToLocation[activeUnitForLoc] || { region: 'Unknown Region', subregion: 'Unknown Subregion', branch: 'Unknown Branch' };
                         const node = getTreeNode(assignedTo, loc.region, loc.subregion, loc.branch);
                         node.r.open++; node.s.open++; node.b.open++;
-                        node.b.vros.push({ unit: unitNumRaw, order: orderNumRaw, status: status, message: getSafeVal(vro, ['Message', 'MESSAGE']) || 'None' });
+                        node.b.vros.push({ unit: unitNumRaw, order: orderNumRaw, status: status, message: getSafeVal(vro, ['Message', 'MESSAGE', 'Comment', 'COMMENT']) || 'None' });
                     }
                 }
             });
 
-            // FIXED: Bridge between city names (Tab 2) and suburb names (Tab 3)
+            // FIXED ALIAS MAP: Translates City names to the suburb names used in Tab 3
             const aliasMap = {
                 "BURLINGTON,VT": "SOUTHBURLINGTON,VT",
                 "GRANDRAPIDS,MI": "KENTWOOD,MI",
@@ -357,24 +361,26 @@
                 const region = (row[0] || '').toString().trim();
                 const subRegion = (row[1] || '').toString().trim();
                 const rawBranch = (row[2] || '').toString().trim();
-                let usefulPctStr = row[8] || row[20]; 
-                if (!rawBranch || rawBranch.toUpperCase() === 'GRAND TOTAL' || !usefulPctStr) return;
-                let pct = parseFloat(usefulPctStr);
-                if (pct <= 2) pct = pct * 100;
+                let usefulPctStr = row[8]; 
+                if (!rawBranch || rawBranch.toUpperCase() === 'GRAND TOTAL' || usefulPctStr === undefined || usefulPctStr === "") return;
                 
+                let percent = parseFloat(usefulPctStr);
+                if (usefulPctStr.toString().includes('%')) percent = parseFloat(usefulPctStr.toString().replace('%', ''));
+                else if (percent <= 2) percent = percent * 100;
+
                 const branchClean = cleanBranchName(rawBranch); 
                 const code = extractSiteCode(rawBranch);
                 let normSearch = normalizeString(branchClean);
                 if (aliasMap[normSearch]) normSearch = aliasMap[normSearch];
                 
-                // FIXED: Prioritize Code Matching, then fallback to normalized name matching
+                // FIXED MATCHING: Prioritize the site code found in Tab 2, then fallback to normalized names
                 const owner = codeToOwner[code] || branchToOwnerFallback[normSearch]; 
 
-                if (owner && coordinators[owner] && !isNaN(pct)) {
+                if (owner && coordinators[owner] && !isNaN(percent)) {
                     const node = getTreeNode(owner, region, subRegion || region, branchClean);
-                    node.b.usefulPct = pct;
-                    node.r.usefulPctSum += pct; node.r.usefulCount++;
-                    node.s.usefulPctSum += pct; node.s.usefulCount++;
+                    node.b.usefulPct = percent;
+                    node.r.usefulPctSum += percent; node.r.usefulCount++;
+                    node.s.usefulPctSum += percent; node.s.usefulCount++;
                 }
             });
 
@@ -393,24 +399,41 @@
         }
 
         function exportDrilldown() {
+            if (!window.currentCoordinator || !window.appData[window.currentCoordinator]) {
+                alert("Please select a coordinator first.");
+                return;
+            }
             const data = window.appData[window.currentCoordinator];
-            const rows = [];
-            const search = document.getElementById('unitSearchInput').value.toLowerCase().trim();
-            for (const [r, rd] of Object.entries(data.tree)) {
-                for (const [s, sd] of Object.entries(rd.subregions)) {
-                    for (const [b, bd] of Object.entries(sd.branches)) {
-                        bd.vros.forEach(v => {
-                            if (v.unit.toLowerCase().includes(search)) {
-                                rows.push({ Region: r, Subregion: s, Branch: b, "Unit No": v.unit, "Order No": v.order, Status: v.status, Message: v.message, Link: v.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${v.order}` : '' });
+            const exportRows = [];
+            const searchTerm = document.getElementById('unitSearchInput').value.toLowerCase().trim();
+            for (const [regName, regData] of Object.entries(data.tree)) {
+                for (const [subName, subData] of Object.entries(regData.subregions)) {
+                    for (const [brName, brData] of Object.entries(subData.branches)) {
+                        brData.vros.forEach(vro => {
+                            if (vro.unit.toLowerCase().includes(searchTerm)) {
+                                const rowUrl = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '';
+                                exportRows.push({
+                                    "Region": regName, "Subregion": subName, "Branch": brName, "Unit No": vro.unit, "Order No": vro.order || 'N/A', "Status": vro.status, "Message": vro.message, "Direct Link": rowUrl
+                                });
                             }
                         });
                     }
                 }
             }
-            const ws = XLSX.utils.json_to_sheet(rows);
+            const ws = XLSX.utils.json_to_sheet(exportRows);
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for(let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const orderCell = XLSX.utils.encode_cell({c: 4, r: R});
+                const linkCell = XLSX.utils.encode_cell({c: 7, r: R});
+                if(ws[orderCell] && ws[orderCell].v !== 'N/A') {
+                    const url = `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${ws[orderCell].v}`;
+                    ws[orderCell].l = { Target: url };
+                    if(ws[linkCell]) ws[linkCell].l = { Target: url };
+                }
+            }
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Open Repairs");
-            XLSX.writeFile(wb, `Open_Repairs_${window.currentCoordinator}.xlsx`);
+            XLSX.writeFile(wb, `Open_Repairs_${window.currentCoordinator.replace(/\s+/g, '_')}.xlsx`);
         }
 
         window.showDrilldown = function(name) {
@@ -419,69 +442,88 @@
             document.getElementById('drilldownToolbar').style.display = 'flex';
             document.getElementById('unitSearchInput').value = '';
             updateDrilldownView();
+            document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
         };
 
         window.updateDrilldownView = function() {
-            const data = window.appData[window.currentCoordinator];
-            const search = document.getElementById('unitSearchInput').value.toLowerCase().trim();
+            const name = window.currentCoordinator;
+            if (!name) return;
+            const data = window.appData[name];
             const container = document.getElementById('drilldownContainer');
-            let html = '';
-            for (const [rName, rData] of Object.entries(data.tree)) {
-                let sHtml = '';
-                for (const [sName, sData] of Object.entries(rData.subregions)) {
-                    let bHtml = '';
-                    for (const [bName, bData] of Object.entries(sData.branches)) {
-                        const filtered = bData.vros.filter(v => v.unit.toLowerCase().includes(search));
-                        if (filtered.length > 0) {
-                            let rRows = '';
-                            filtered.forEach(v => {
-                                const l = v.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${v.order}` : '#';
-                                rRows += `<tr><td>${v.unit}</td><td><a href="${l}" target="_blank" class="drill-link">${v.order}</a></td><td>${v.status}</td><td>${v.message}</td></tr>`;
-                            });
-                            bHtml += `<details ${search ? 'open' : ''}><summary>${bName} (${filtered.length} Open)</summary><table class="drill-table"><thead><tr><th>Unit</th><th>Order</th><th>Status</th><th>Message</th></tr></thead><tbody>${rRows}</tbody></table></details>`;
-                        }
-                    }
-                    if (bHtml) sHtml += `<details ${search ? 'open' : ''}><summary>${sName}</summary><div class="details-content">${bHtml}</div></details>`;
-                }
-                if (sHtml) html += `<details ${search ? 'open' : ''}><summary>${rName}</summary><div class="details-content">${sHtml}</div></details>`;
+            const searchTerm = document.getElementById('unitSearchInput').value.toLowerCase().trim();
+            const autoOpen = searchTerm.length > 0 ? 'open' : ''; 
+            if (!data || Object.keys(data.tree).length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin: 0;">No open repair orders found for this coordinator.</p>`;
+                return;
             }
-            container.innerHTML = html || `<p style="text-align:center; padding:20px;">No results found.</p>`;
+            let html = '';
+            for (const [regName, regData] of Object.entries(data.tree)) {
+                if (regData.open === 0) continue; 
+                let subHtml = '';
+                let regMatchCount = 0;
+                for (const [subName, subData] of Object.entries(regData.subregions)) {
+                    if (subData.open === 0) continue;
+                    let brHtml = '';
+                    let subMatchCount = 0;
+                    for (const [brName, brData] of Object.entries(subData.branches)) {
+                        if (brData.open === 0) continue;
+                        const filteredVros = brData.vros.filter(vro => vro.unit.toLowerCase().includes(searchTerm));
+                        if (filteredVros.length === 0) continue; 
+                        const brOpenCount = filteredVros.length;
+                        subMatchCount += brOpenCount;
+                        let vroRows = '';
+                        filteredVros.forEach(vro => {
+                            const orderLink = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '#';
+                            const orderHtml = vro.order ? `<a href="${orderLink}" target="_blank" class="drill-link">${vro.order} ↗</a>` : `<span style="color:var(--text-muted);">N/A</span>`;
+                            vroRows += `<tr><td style="font-weight: 600;">${vro.unit}</td><td>${orderHtml}</td><td>${vro.status}</td><td style="color: #64748b;">${vro.message}</td></tr>`;
+                        });
+                        brHtml += `<details ${autoOpen}><summary style="font-size: 0.95rem; font-weight: 600; background: transparent; border: none; border-bottom: 1px solid #e2e8f0;">${brName} <span class="text-open" style="margin-left:auto;">${brOpenCount} Open ROs</span></summary><table class="drill-table"><thead><tr><th style="width: 15%;">Unit No</th><th style="width: 20%;">Order Number</th><th style="width: 20%;">Status</th><th style="width: 45%;">Message / Details</th></tr></thead><tbody>${vroRows}</tbody></table></details>`;
+                    }
+                    if (subMatchCount > 0) {
+                        regMatchCount += subMatchCount;
+                        subHtml += `<details ${autoOpen}><summary style="font-size: 1rem; color: #475569; background: #ffffff;">${subName} <span class="badge" style="background:#e2e8f0; margin-left:10px;">${subMatchCount} Open</span></summary><div class="details-content">${brHtml}</div></details>`;
+                    }
+                }
+                if (regMatchCount > 0) {
+                    html += `<details ${autoOpen}><summary style="font-size: 1.1rem; color: var(--amerit-grey);">${regName} <span class="badge status-yellow" style="margin-left: 10px;">${regMatchCount} Open</span></summary><div class="details-content">${subHtml}</div></details>`;
+                }
+            }
+            container.innerHTML = html || `<p style="text-align: center; color: var(--text-muted); margin: 0; padding: 20px;">No matching unit numbers found.</p>`;
         };
 
         function renderDashboard(coordinators) {
             const kpiContainer = document.getElementById('kpiContainer');
             const tableBody = document.getElementById('performanceTableBody');
             kpiContainer.innerHTML = ''; tableBody.innerHTML = '';
-
             for (const [name, data] of Object.entries(coordinators)) {
-                let uPct = 0, uCnt = 0;
-                for (const reg of Object.values(data.tree)) { uPct += reg.usefulPctSum; uCnt += reg.usefulCount; }
-                const avgU = uCnt > 0 ? (uPct / uCnt) : 0;
-                let bCls = avgU >= 110 ? 'status-green' : (avgU >= 100 ? 'status-yellow' : 'status-red');
+                let totalUsePct = 0; let totalUseCount = 0;
+                for (const reg of Object.values(data.tree)) { totalUsePct += reg.usefulPctSum; totalUseCount += reg.usefulCount; }
+                const masterAvgUsefulness = totalUseCount > 0 ? (totalUsePct / totalUseCount) : 0;
+                let badgeClass = masterAvgUsefulness >= 110 ? 'status-green' : (masterAvgUsefulness >= 100 ? 'status-yellow' : 'status-red');
                 const totalActionable = data.open + data.compClosed;
                 const ratio = totalActionable === 0 ? 0 : Math.round((data.compClosed / totalActionable) * 100);
-
                 if (!data.isPMOnly) {
-                    const uStyle = data.unassigned > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
-                    tableBody.innerHTML += `<tr><td style="font-weight:bold;">${name}</td><td style="text-align:center;">${data.compClosed}</td><td style="text-align:center;">${data.open}</td><td style="text-align:center; color:#94a3b8;">${data.pending}</td><td style="text-align:center; ${uStyle}">${data.unassigned}</td><td style="text-align:center; font-weight:bold;" class="${getColorClass(avgU)}">${avgU.toFixed(1)}%</td><td style="text-align:center;"><span class="badge ${bCls}">${avgU >= 110 ? 'On Target' : (avgU >= 100 ? 'Warning' : 'Critical')}</span></td></tr>`;
+                    const unassignedStyle = data.unassigned > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
+                    tableBody.innerHTML += `<tr><td style="font-weight: bold; font-size: 1.1rem; color: var(--amerit-grey);">${name}</td><td style="text-align: center; font-size: 1.1rem;">${data.compClosed}</td><td style="text-align: center; font-size: 1.1rem;">${data.open}</td><td style="text-align: center; font-size: 1.1rem; color: #94a3b8;">${data.pending}</td><td style="text-align: center; font-size: 1.1rem; ${unassignedStyle}">${data.unassigned}</td><td style="text-align: center; font-weight: bold; font-size: 1.1rem;" class="${getColorClass(masterAvgUsefulness)}">${masterAvgUsefulness.toFixed(1)}%</td><td style="text-align: center;"><span class="badge ${badgeClass}">${masterAvgUsefulness >= 110 ? 'On Target' : (masterAvgUsefulness >= 100 ? 'Warning' : 'Critical')}</span></td></tr>`;
                 }
-
-                let dHtml = `<div class="usefulness-details">`;
-                for (const [r, rd] of Object.entries(data.tree)) {
-                    let rA = rd.usefulCount > 0 ? (rd.usefulPctSum / rd.usefulCount) : 0;
-                    dHtml += `<div class="region-group"><div class="region-title loc-row"><span class="loc-name">${r}</span><span class="loc-open text-open">${rd.open}</span><span class="loc-pct ${getColorClass(rA)}">${!data.isPMOnly && rA > 0 ? rA.toFixed(1) + '%' : ''}</span></div>`;
-                    for (const [s, sd] of Object.entries(rd.subregions)) {
-                        let sA = sd.usefulCount > 0 ? (sd.usefulPctSum / sd.usefulCount) : 0;
-                        dHtml += `<div class="subregion-title loc-row"><span class="loc-name">${s}</span><span class="loc-open" style="color:var(--amerit-yellow);">${sd.open}</span><span class="loc-pct ${getColorClass(sA)}">${!data.isPMOnly && sA > 0 ? sA.toFixed(1) + '%' : ''}</span></div>`;
-                        for (const [b, bd] of Object.entries(sd.branches)) {
-                            dHtml += `<div class="branch-row loc-row"><span class="loc-name">${b}</span><span class="loc-open" style="font-weight:600;">${bd.open}</span><span class="loc-pct ${getColorClass(bd.usefulPct)}">${!data.isPMOnly && bd.usefulPct !== null ? bd.usefulPct.toFixed(1) + '%' : ''}</span></div>`;
+                let detailsHTML = `<div class="usefulness-details">`;
+                let hasData = false;
+                for (const [regName, regData] of Object.entries(data.tree)) {
+                    hasData = true;
+                    let regAvg = regData.usefulCount > 0 ? (regData.usefulPctSum / regData.usefulCount) : 0;
+                    detailsHTML += `<div class="region-group"><div class="region-title loc-row"><span class="loc-name">${regName}</span><span class="loc-open text-open">${regData.open} Open</span><span class="loc-pct ${getColorClass(regAvg)}">${!data.isPMOnly && regAvg > 0 ? regAvg.toFixed(1) + '%' : ''}</span></div>`;
+                    for (const [subName, subData] of Object.entries(regData.subregions)) {
+                        let subAvg = subData.usefulCount > 0 ? (subData.usefulPctSum / subData.usefulCount) : 0;
+                        detailsHTML += `<div class="subregion-title loc-row"><span class="loc-name">${subName}</span><span class="loc-open" style="color: var(--amerit-yellow);">${subData.open} Open</span><span class="loc-pct ${getColorClass(subAvg)}">${!data.isPMOnly && subAvg > 0 ? subAvg.toFixed(1) + '%' : ''}</span></div>`;
+                        for (const [brName, brData] of Object.entries(subData.branches)) {
+                            detailsHTML += `<div class="branch-row loc-row"><span class="loc-name">${brName}</span><span class="loc-open" style="font-weight: 600;">${brData.open}</span><span class="loc-pct ${getColorClass(brData.usefulPct)}">${!data.isPMOnly && brData.usefulPct !== null ? brData.usefulPct.toFixed(1) + '%' : ''}</span></div>`;
                         }
                     }
-                    dHtml += `</div>`;
+                    detailsHTML += `</div>`; 
                 }
-                dHtml += `</div>`;
-
-                kpiContainer.innerHTML += `<div class="kpi-card" onclick="window.showDrilldown('${name}')"><h3><div style="font-size:1.1rem;">${name} ${data.isPMOnly ? '<span class="pm-badge">PM</span>' : ''}</div>${!data.isPMOnly ? `<span class="badge ${bCls}">${avgU.toFixed(1)}%</span>` : ''}</h3><div class="kpi-stats"><div class="stat-box"><div class="stat-value">${data.open}</div><div class="stat-label">Open</div></div><div class="stat-box"><div class="stat-value">${data.compClosed}</div><div class="stat-label">Comp/Closed</div></div><div class="stat-box"><div class="stat-value">${ratio}%</div><div class="stat-label">Rate</div></div></div>${dHtml}</div>`;
+                detailsHTML += `</div>`;
+                if (!hasData) detailsHTML = `<div style="margin-top: 15px; font-size: 0.85rem; color: #64748b; text-align: center; padding-top: 10px; border-top: 1px solid var(--border-color); flex-grow: 1;">No active locations found.</div>`;
+                kpiContainer.innerHTML += `<div class="kpi-card" onclick="window.showDrilldown('${name}')"><h3><div style="font-size: 1.1rem;">${name} ${data.isPMOnly ? '<span class="pm-badge">PM</span>' : ''}</div>${!data.isPMOnly ? `<span class="badge ${badgeClass}">${masterAvgUsefulness.toFixed(1)}%</span>` : ''}</h3><div class="kpi-stats"><div class="stat-box"><div class="stat-value">${data.open}</div><div class="stat-label">Open</div></div><div class="stat-box"><div class="stat-value">${data.compClosed}</div><div class="stat-label">Comp/Closed</div></div><div class="stat-box"><div class="stat-value">${ratio}%</div><div class="stat-label">Closure Rate</div></div></div>${detailsHTML}</div>`;
             }
         }
     </script>
