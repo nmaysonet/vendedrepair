@@ -38,6 +38,9 @@
         .section-title { font-size: 1.25rem; color: var(--amerit-grey); margin-bottom: 15px; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
         .section-title.spaced { margin-top: 50px; margin-bottom: 30px; }
 
+        /* FIX: Removed display:none from here so it shows up when parent is unhidden */
+        .table-container { margin-bottom: 40px; }
+
         table { width: 100%; border-collapse: collapse; background: var(--card-bg); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
         th { background-color: var(--amerit-grey); color: white; font-weight: 600; }
@@ -80,6 +83,7 @@
         .text-red { color: var(--red-text); font-weight: 700; }
         .text-open { color: var(--secondary); font-weight: 700; }
 
+        /* FIX: Removed display:none from here so it shows up when parent is unhidden */
         #drilldownSection { margin-top: 50px; }
         .drill-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--secondary); }
         details { margin-bottom: 8px; }
@@ -115,6 +119,7 @@
     </div>
 
     <div id="dashboardContent" style="display: none;">
+        
         <div class="table-container" id="tableContainer">
             <div class="section-title">Aggregate Coordinator Performance</div>
             <table id="performanceTable">
@@ -157,15 +162,16 @@
                 <p style="color: var(--text-muted); text-align: center; font-style: italic; margin: 0;">Click a coordinator's tile above to view their open repair orders by location.</p>
             </div>
         </div>
+        
     </div>
 
     <script>
         window.appData = {};
         window.currentCoordinator = null;
 
-        // Auto-fetch data on page load
         window.onload = function() {
-            fetch('master_data.xlsx')
+            // Adds a cache-buster so GitHub Pages always pulls the newest Excel file
+            fetch('master_data.xlsx?v=' + new Date().getTime())
                 .then(response => {
                     if (!response.ok) throw new Error("Could not find master_data.xlsx in the repository.");
                     return response.arrayBuffer();
@@ -236,6 +242,8 @@
 
             if (vroData.length > 0 && cidData.length > 0 && cidOwnerData.length > 0) {
                 document.getElementById('loadingBanner').style.display = 'none';
+                
+                // This will unhide the parent wrapper, which now gracefully reveals all children elements
                 document.getElementById('dashboardContent').style.display = 'block';
                 
                 processDashboardData(vroData, usefulnessRawData, regionOwnerData, cidOwnerData, cidData);
@@ -460,14 +468,12 @@
             document.getElementById('drilldownTitle').innerText = name;
             document.getElementById('drilldownToolbar').style.display = 'flex';
             
-            // Clear search box on new coordinator selection
             document.getElementById('unitSearchInput').value = '';
             
             updateDrilldownView();
             document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
         };
 
-        // Live filtering logic
         window.updateDrilldownView = function() {
             const name = window.currentCoordinator;
             if (!name) return;
@@ -475,7 +481,7 @@
             const data = window.appData[name];
             const container = document.getElementById('drilldownContainer');
             const searchTerm = document.getElementById('unitSearchInput').value.toLowerCase().trim();
-            const autoOpen = searchTerm.length > 0 ? 'open' : ''; // Auto-expand folders if searching
+            const autoOpen = searchTerm.length > 0 ? 'open' : ''; 
             
             if (!data || Object.keys(data.tree).length === 0) {
                 container.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin: 0;">No open repair orders found for this coordinator.</p>`;
@@ -500,9 +506,7 @@
                     for (const [brName, brData] of Object.entries(subData.branches)) {
                         if (brData.open === 0) continue;
 
-                        // Filter the rows
                         const filteredVros = brData.vros.filter(vro => vro.unit.toLowerCase().includes(searchTerm));
-                        
                         if (filteredVros.length === 0) continue; 
 
                         const brOpenCount = filteredVros.length;
