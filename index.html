@@ -51,7 +51,7 @@
 
         .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 15px; margin-bottom: 30px; align-items: stretch; }
         @media (max-width: 1400px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
-        .kpi-card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 4px solid var(--amerit-grey); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; display: flex; flex-direction: column; }
+        .kpi-card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--amerit-grey); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; display: flex; flex-direction: column; }
         .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: var(--amerit-yellow); background: var(--blue-hover); }
         .kpi-card h3 { font-size: 1rem; margin-top: 0; color: var(--amerit-grey); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .pm-badge { font-size: 0.75rem; color: #64748b; font-weight: normal; background: #e2e8f0; padding: 2px 6px; border-radius: 12px; margin-left: 5px; }
@@ -70,8 +70,9 @@
         .loc-name { flex: 1.5; text-align: left; padding-right: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .loc-open { flex: 1; text-align: center; }
         .loc-pct { flex: 1; text-align: right; }
-        /* NEW STYLE FOR DRILLDOWN HEADER LABELS */
-        .header-labels { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid var(--border-color); padding-bottom: 2px; }
+        
+        /* HEADER LABEL STYLE */
+        .tile-labels { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid var(--border-color); padding-bottom: 2px; text-transform: uppercase; }
 
         .region-group { margin-bottom: 12px; }
         .region-title { font-weight: 700; color: var(--amerit-grey); border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 6px; font-size: 0.85rem;}
@@ -269,11 +270,7 @@
                     if (cid && cidToOwner[cid.toString().trim().toUpperCase()]) {
                         unitToOwner[normUnit] = cidToOwner[cid.toString().trim().toUpperCase()];
                     }
-                    unitToLocation[normUnit] = { 
-                        region: reg ? reg.toString().trim() : 'Unknown Region', 
-                        subregion: sub ? sub.toString().trim() : 'Unknown Subregion', 
-                        branch: br ? cleanBranchName(br) : 'Unknown Branch'
-                    };
+                    unitToLocation[normUnit] = { region: reg ? reg.toString().trim() : 'Unknown Region', subregion: sub ? sub.toString().trim() : 'Unknown Subregion', branch: br ? cleanBranchName(br) : 'Unknown Branch' };
                 }
             });
 
@@ -371,7 +368,6 @@
                 const code = extractSiteCode(rawBranch);
                 let normSearch = normalizeString(branchClean);
                 if (aliasMap[normSearch]) normSearch = aliasMap[normSearch];
-                
                 const owner = codeToOwner[code] || branchToOwnerFallback[normSearch]; 
 
                 if (owner && coordinators[owner] && !isNaN(percent)) {
@@ -384,6 +380,12 @@
 
             window.appData = coordinators;
             renderDashboard(coordinators);
+        }
+
+        function getColorClass(val) {
+            if (val >= 110) return 'text-green';
+            if (val >= 100) return 'text-yellow';
+            return 'text-red';
         }
 
         function toggleAllDetails(state) {
@@ -513,7 +515,7 @@
                     for (const [subName, subData] of Object.entries(regData.subregions)) {
                         let subAvg = subData.usefulCount > 0 ? (subData.usefulPctSum / subData.usefulCount) : 0;
                         detailsHTML += `<div class="subregion-title loc-row"><span class="loc-name">${subName}</span><span class="loc-open" style="color: var(--amerit-yellow);">${subData.open}</span><span class="loc-pct ${getColorClass(subAvg)}">${!data.isPMOnly && subAvg > 0 ? subAvg.toFixed(1) + '%' : ''}</span></div>`;
-                        for (const [brName, brData] of Object.entries(subData.branches)) {
+                        for (const [brName, brData] of Object.entries(sd.branches)) {
                             detailsHTML += `<div class="branch-row loc-row"><span class="loc-name">${brName}</span><span class="loc-open" style="font-weight: 600;">${brData.open}</span><span class="loc-pct ${getColorClass(brData.usefulPct)}">${!data.isPMOnly && brData.usefulPct !== null ? brData.usefulPct.toFixed(1) + '%' : ''}</span></div>`;
                         }
                     }
