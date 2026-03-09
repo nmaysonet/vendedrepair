@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coordinator VRO Funnel & Accountability</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --amerit-yellow: #FFC600;
+            --amerit-grey: #333333;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --border-color: #e2e8f0;
+            --green-bg: #dcfce7;
+            --green-text: #166534;
+            --yellow-bg: #fef08a;
+            --yellow-text: #854d0e;
+            --red-bg: #fee2e2;
+            --red-text: #991b1b;
+            --blue-hover: #f0f9ff;
+            --secondary: #0284c7;
+            --text-muted: #64748b;
+        }
+
+        body { font-family: 'Raleway', sans-serif; background-color: var(--bg-color); color: var(--text-main); padding: 20px; font-size: 14px; }
+        .header-brand { font-size: 1.5rem; font-weight: 900; color: var(--amerit-grey); border-bottom: 4px solid var(--amerit-yellow); padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+        .brand-tag { font-size: 1rem; font-style: italic; color: var(--amerit-yellow); background: var(--amerit-grey); padding: 4px 12px; border-radius: 4px; }
+
+        /* Loading Banner */
+        #loadingBanner { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 30px; border: 2px dashed var(--amerit-yellow); text-align: center; font-size: 1.2rem; font-weight: bold; color: var(--amerit-grey); }
+
+        .section-title { font-size: 1.25rem; color: var(--amerit-grey); margin-bottom: 15px; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
+        .section-title.spaced { margin-top: 50px; margin-bottom: 30px; }
+
+        table { width: 100%; border-collapse: collapse; background: var(--card-bg); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--amerit-grey); color: white; font-weight: 600; }
+        
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; display: inline-block; text-align: center;}
+        .status-green { background: var(--green-bg); color: var(--green-text); }
+        .status-yellow { background: var(--yellow-bg); color: var(--yellow-text); }
+        .status-red { background: var(--red-bg); color: var(--red-text); }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 15px; margin-bottom: 30px; align-items: stretch; }
+        @media (max-width: 1400px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+        .kpi-card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--amerit-grey); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; display: flex; flex-direction: column; }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: var(--amerit-yellow); background: var(--blue-hover); }
+        .kpi-card h3 { font-size: 1rem; margin-top: 0; color: var(--amerit-grey); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .pm-badge { font-size: 0.75rem; color: #64748b; font-weight: normal; background: #e2e8f0; padding: 2px 6px; border-radius: 12px; margin-left: 5px; }
+
+        .kpi-stats { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
+        .stat-box { text-align: center; flex: 1; padding: 0 2px; }
+        .stat-value { font-size: 1.4rem; color: var(--amerit-yellow); text-shadow: 1px 1px 1px rgba(0,0,0,0.8); margin-bottom: 2px; }
+        .stat-label { font-size: 0.75rem; color: #64748b; line-height: 1.1;}
+
+        .usefulness-details { margin-top: 10px; font-size: 0.8rem; max-height: 500px; overflow-y: auto; border-top: 1px solid var(--border-color); padding-top: 10px; padding-right: 5px; flex-grow: 1; }
+        .usefulness-details::-webkit-scrollbar { width: 5px; }
+        .usefulness-details::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .usefulness-details::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .loc-row { display: flex; align-items: center; justify-content: space-between; }
+        .loc-name { flex: 1.5; text-align: left; padding-right: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .loc-open { flex: 1; text-align: center; }
+        .loc-pct { flex: 1; text-align: right; }
+
+        .region-group { margin-bottom: 12px; }
+        .region-title { font-weight: 700; color: var(--amerit-grey); border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 6px; font-size: 0.85rem;}
+        .subregion-title { font-weight: 700; color: #475569; padding-left: 5px; margin-bottom: 4px; }
+        .branch-row { padding: 3px 0 3px 10px; color: #475569; border-bottom: 1px dashed #f1f5f9; }
+        .branch-row:last-child { border-bottom: none; }
+        
+        .text-green { color: var(--green-text); font-weight: 700; }
+        .text-yellow { color: var(--yellow-text); font-weight: 700; }
+        .text-red { color: var(--red-text); font-weight: 700; }
+        .text-open { color: var(--secondary); font-weight: 700; }
+
+        #drilldownSection { margin-top: 50px; display: none; }
+        .drill-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--secondary); }
+        details { margin-bottom: 8px; }
+        summary { cursor: pointer; font-weight: bold; background: #f8fafc; padding: 12px; border-radius: 4px; display: flex; align-items: center; border: 1px solid var(--border-color); transition: background 0.2s; user-select: none; }
+        summary:hover { background: #f1f5f9; }
+        summary::before { content: '+'; margin-right: 10px; font-weight: 900; width: 14px; text-align: center; display: inline-block; color: var(--secondary); font-size: 1.1rem; }
+        details[open] > summary::before { content: '-'; }
+        details > .details-content { padding-left: 20px; padding-top: 10px; border-left: 2px solid #e2e8f0; margin-left: 17px; margin-bottom: 10px; }
+        
+        .drill-table { font-size: 0.85rem; width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; box-shadow: none; border: 1px solid var(--border-color); }
+        .drill-table th, .drill-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .drill-table th { background: #f1f5f9; color: var(--amerit-grey); }
+        .drill-table tr:hover { background-color: #f8fafc; }
+        .drill-link { color: var(--secondary); text-decoration: none; font-weight: bold; }
+        .drill-link:hover { text-decoration: underline; color: #0369a1; }
+        
+        .action-btn { background-color: #f1f5f9; color: var(--amerit-grey); border: 1px solid var(--border-color); padding: 8px 16px; font-size: 0.9rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: 'Raleway', sans-serif;}
+        .action-btn:hover { background-color: #e2e8f0; }
+        .export-btn { background-color: #16a34a; color: white; border: none; padding: 8px 16px; font-size: 0.9rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: 'Raleway', sans-serif;}
+        .export-btn:hover { background-color: #15803d; }
+    </style>
+</head>
+<body>
+
+    <div class="header-brand">
+        <div>Coordinator Performance & Accountability</div>
+        <div class="brand-tag">KEEP ON ROLLING&trade;</div>
+    </div>
+
+    <div id="loadingBanner">
+        🔄 Fetching Data from master_data.xlsx...
+    </div>
+
+    <div id="dashboardContent" style="display: none;">
+        <div class="table-container" id="tableContainer">
+            <div class="section-title">Aggregate Coordinator Performance</div>
+            <table id="performanceTable">
+                <thead>
+                    <tr>
+                        <th>Coordinator</th>
+                        <th style="text-align: center;">Combined Comp/Closed</th>
+                        <th style="text-align: center;">Total Open Repairs</th>
+                        <th style="text-align: center; color: #cbd5e1; font-weight: 400; font-size: 0.85rem;">(Of Open) Pending Estimates</th>
+                        <th style="text-align: center; color: #cbd5e1; font-weight: 400; font-size: 0.85rem;">(Of Open) Unassigned</th>
+                        <th style="text-align: center;">Avg. Usefulness %</th>
+                        <th style="text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="performanceTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="kpiSection">
+            <div class="section-title spaced">
+                Coordinator Regional Breakdowns 
+                <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted); display:block; margin-top: 5px;">(Click any tile to expand VRO Details below)</span>
+            </div>
+            <div class="kpi-grid" id="kpiContainer"></div>
+        </div>
+
+        <div id="drilldownSection">
+            <div class="section-title">Open Repairs Drilldown: <span id="drilldownTitle" style="color: #0284c7;">Select a Coordinator</span></div>
+            <div id="drilldownToolbar" style="display: none; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                <div>
+                    <button class="action-btn" onclick="toggleAllDetails(true)">Expand All Folders</button>
+                    <button class="action-btn" style="margin-left: 10px;" onclick="toggleAllDetails(false)">Collapse All Folders</button>
+                </div>
+                <button class="export-btn" onclick="exportDrilldown()">📥 Export to Excel</button>
+            </div>
+            <div class="drill-container" id="drilldownContainer">
+                <p style="color: var(--text-muted); text-align: center; font-style: italic;">Click a coordinator's tile above to view their open repair orders by location.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.appData = {};
+        window.currentCoordinator = null;
+
+        // Auto-fetch data on page load
+        window.onload = function() {
+            // Point this exactly to the filename you uploaded to GitHub
+            fetch('master_data.xlsx')
+                .then(response => {
+                    if (!response.ok) throw new Error("Could not find master_data.xlsx in the repository.");
+                    return response.arrayBuffer();
+                })
+                .then(buffer => {
+                    const data = new Uint8Array(buffer);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    processWorkbook(workbook);
+                })
+                .catch(error => {
+                    document.getElementById('loadingBanner').innerHTML = `
+                        <span style="color: var(--red-text);">❌ Error Loading File</span><br>
+                        <span style="font-size: 0.9rem; font-weight: normal;">Ensure 'master_data.xlsx' is uploaded in the same folder as this page on GitHub.</span>
+                    `;
+                    console.error(error);
+                });
+        };
+
+        function getSafeVal(obj, possibleKeys) {
+            if (!obj) return '';
+            const objKeys = Object.keys(obj);
+            for (let pk of possibleKeys) {
+                const match = objKeys.find(k => k.trim().toUpperCase() === pk.trim().toUpperCase());
+                if (match !== undefined && obj[match] !== undefined && obj[match] !== null) {
+                    return obj[match];
+                }
+            }
+            return '';
+        }
+
+        function getFullName(nameRaw) {
+            const lowerName = nameRaw.toString().toLowerCase();
+            if (lowerName.includes('brittany')) return 'Brittany Williams';
+            if (lowerName.includes('james')) return 'James Hopkins';
+            if (lowerName.includes('hollie')) return 'Hollie Francis';
+            if (lowerName.includes('ralph')) return 'Ralph Mann';
+            return nameRaw.toString().trim();
+        }
+
+        function extractUsefulnessTab(sheet) {
+            const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+            for (let i = 0; i < Math.min(raw.length, 15); i++) {
+                const rowStr = raw[i].join(' ').toUpperCase();
+                if (rowStr.includes('GARDA REGION') || rowStr.includes('USEFUL')) {
+                    return raw.slice(i + 1); 
+                }
+            }
+            return [];
+        }
+
+        function processWorkbook(workbook) {
+            if (workbook.SheetNames.length < 5) {
+                document.getElementById('loadingBanner').innerHTML = `<span style="color: var(--red-text);">Error: The Excel file requires exactly 5 tabs.</span>`;
+                return;
+            }
+
+            const sheetVro = workbook.Sheets[workbook.SheetNames[0]]; 
+            const sheetUse = workbook.Sheets[workbook.SheetNames[1]]; 
+            const sheetReg = workbook.Sheets[workbook.SheetNames[2]]; 
+            const sheetOwn = workbook.Sheets[workbook.SheetNames[3]]; 
+            const sheetCid = workbook.Sheets[workbook.SheetNames[4]]; 
+
+            let vroData = XLSX.utils.sheet_to_json(sheetVro, { defval: "" });
+            let regionOwnerData = XLSX.utils.sheet_to_json(sheetReg, { defval: "" });
+            let cidOwnerData = XLSX.utils.sheet_to_json(sheetOwn, { defval: "" });
+            let cidData = XLSX.utils.sheet_to_json(sheetCid, { defval: "" });
+            let usefulnessRawData = extractUsefulnessTab(sheetUse);
+
+            if (vroData.length > 0 && cidData.length > 0 && cidOwnerData.length > 0) {
+                // Hide loader and show content
+                document.getElementById('loadingBanner').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+                
+                processDashboardData(vroData, usefulnessRawData, regionOwnerData, cidOwnerData, cidData);
+            } else {
+                document.getElementById('loadingBanner').innerHTML = `<span style="color: var(--red-text);">Error: Found tabs, but data appears empty.</span>`;
+            }
+        }
+
+        function normalizeString(str) {
+            return (str || '').toString().toUpperCase().replace(/\s+/g, '');
+        }
+
+        function cleanBranchName(str) {
+            return (str || '').toString().replace(/\s+\d+-\d+$/, '').trim();
+        }
+
+        function processDashboardData(vroData, usefulnessRawData, regionOwnerData, cidOwnerData, cidData) {
+            const cidToOwner = {};
+            cidOwnerData.forEach(row => {
+                const cid = getSafeVal(row, ['FMC/Customer (CID)', 'CID', 'CUSTID']); 
+                const owner = getSafeVal(row, ['Employee Assigned', 'Owner Coordinator', 'Owner']);
+                if (cid && owner) cidToOwner[cid.toString().trim().toUpperCase()] = owner.toString().trim();
+            });
+
+            const unitToOwner = {};
+            const unitToLocation = {}; 
+            
+            cidData.forEach(row => {
+                const unit = getSafeVal(row, ['UNITNUMBER', 'UNIT NUMBER', 'UNIT NO', 'UNIT']);
+                const cid = getSafeVal(row, ['CUSTID', 'CID', 'CUSTOMER ID']);
+                const reg = getSafeVal(row, ['Region', 'REGION']);
+                const sub = getSafeVal(row, ['Subregion', 'SUBREGION', 'Sub-Region']);
+                const br = getSafeVal(row, ['Branch', 'BRANCH', 'Location']);
+                
+                if (unit) {
+                    const normUnit = normalizeString(unit);
+                    if (cid && cidToOwner[cid.toString().trim().toUpperCase()]) {
+                        unitToOwner[normUnit] = cidToOwner[cid.toString().trim().toUpperCase()];
+                    }
+                    unitToLocation[normUnit] = {
+                        region: reg ? reg.toString().trim() : 'Unknown Region',
+                        subregion: sub ? sub.toString().trim() : 'Unknown Subregion',
+                        branch: br ? cleanBranchName(br) : 'Unknown Branch'
+                    };
+                }
+            });
+
+            const branchToOwner = {};
+            regionOwnerData.forEach(row => {
+                const branchRaw = getSafeVal(row, ['Branch', 'BRANCH', 'Location']);
+                const rawOwner = getSafeVal(row, ['Owner Coordinator', 'Owner', 'Coordinator', 'Employee Assigned']);
+                if (branchRaw && rawOwner) {
+                    branchToOwner[normalizeString(branchRaw)] = getFullName(rawOwner);
+                }
+            });
+
+            const coordinators = {
+                'Brittany Williams': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
+                'James Hopkins': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
+                'Hollie Francis': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
+                'Ralph Mann': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
+                'Kevin Anguzza': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {}, isPMOnly: true }
+            };
+
+            function getTreeNode(owner, reg, sub, br) {
+                if (!coordinators[owner]) return null;
+                const root = coordinators[owner].tree;
+                
+                if (!root[reg]) root[reg] = { open: 0, usefulPctSum: 0, usefulCount: 0, subregions: {} };
+                if (!root[reg].subregions[sub]) root[reg].subregions[sub] = { open: 0, usefulPctSum: 0, usefulCount: 0, branches: {} };
+                if (!root[reg].subregions[sub].branches[br]) root[reg].subregions[sub].branches[br] = { open: 0, usefulPct: null, vros: [] };
+                
+                return { r: root[reg], s: root[reg].subregions[sub], b: root[reg].subregions[sub].branches[br] };
+            }
+
+            vroData.forEach(vro => {
+                const ownerRaw = getSafeVal(vro, ['Owner', 'Employee Assigned']).toString().toLowerCase();
+                const status = getSafeVal(vro, ['Status']).toString().toUpperCase().trim();
+                let unitNumRaw = getSafeVal(vro, ['Unit No', 'UNIT NO', 'Unit', 'Vehicle', 'UNITNUMBER']);
+                let unitNum = normalizeString(unitNumRaw);
+                let orderNumRaw = getSafeVal(vro, ['Order', 'ORDER', 'Order No', 'RONUM']).toString().trim();
+
+                if (!status || !unitNum) return;
+                if (status.includes('CREDIT VRO')) return;
+
+                let assignedTo = null;
+                let activeUnitForLoc = unitNum;
+
+                if (ownerRaw.includes('kanguzza') || ownerRaw.includes('kevin anguzza')) {
+                    assignedTo = 'Kevin Anguzza';
+                } else if (unitToOwner[unitNum]) {
+                    assignedTo = unitToOwner[unitNum];
+                } else if (unitNum.endsWith('U') && unitToOwner[unitNum.slice(0, -1)]) {
+                    assignedTo = unitToOwner[unitNum.slice(0, -1)];
+                    activeUnitForLoc = unitNum.slice(0, -1);
+                }
+
+                if (assignedTo && coordinators[assignedTo]) {
+                    if (status.includes('FINAL CHARGE') || status.includes('COMPLETE') || status.includes('CLOSED')) {
+                        coordinators[assignedTo].compClosed++;
+                    } else {
+                        coordinators[assignedTo].open++;
+                        if (status.includes('ESTIMATE')) coordinators[assignedTo].pending++;
+                        if (status.includes('UNASSIGNED')) coordinators[assignedTo].unassigned++;
+
+                        const loc = unitToLocation[activeUnitForLoc] || { region: 'Unknown Region', subregion: 'Unknown Subregion', branch: 'Unknown Branch' };
+                        const node = getTreeNode(assignedTo, loc.region, loc.subregion, loc.branch);
+                        
+                        node.r.open++;
+                        node.s.open++;
+                        node.b.open++;
+                        node.b.vros.push({
+                            unit: unitNumRaw,
+                            order: orderNumRaw,
+                            status: status,
+                            message: getSafeVal(vro, ['Message', 'MESSAGE', 'Comment', 'COMMENT']) || 'None'
+                        });
+                    }
+                }
+            });
+
+            usefulnessRawData.forEach(row => {
+                if (!row || row.length < 9) return;
+                const region = (row[0] || '').toString().trim();
+                const subRegion = (row[1] || '').toString().trim();
+                const rawBranch = (row[2] || '').toString().trim();
+                let usefulPctStr = row[8]; 
+
+                if (!rawBranch || rawBranch.toUpperCase() === 'GRAND TOTAL' || usefulPctStr === undefined || usefulPctStr === "") return;
+                
+                let percent = parseFloat(usefulPctStr);
+                if (usefulPctStr.toString().includes('%')) percent = parseFloat(usefulPctStr.toString().replace('%', ''));
+                else if (percent <= 2) percent = percent * 100;
+
+                const normalizedTab2Branch = normalizeString(rawBranch);
+                const owner = branchToOwner[normalizedTab2Branch]; 
+                const branchClean = cleanBranchName(rawBranch); 
+                const groupName = subRegion || region; 
+
+                if (owner && coordinators[owner] && !isNaN(percent)) {
+                    const node = getTreeNode(owner, region, groupName, branchClean);
+                    node.b.usefulPct = percent;
+                    node.r.usefulPctSum += percent; node.r.usefulCount++;
+                    node.s.usefulPctSum += percent; node.s.usefulCount++;
+                }
+            });
+
+            window.appData = coordinators;
+            renderDashboard(coordinators);
+        }
+
+        function getColorClass(val) {
+            if (val >= 110) return 'text-green';
+            if (val >= 100) return 'text-yellow';
+            return 'text-red';
+        }
+
+        function toggleAllDetails(state) {
+            const detailsList = document.querySelectorAll('#drilldownContainer details');
+            detailsList.forEach(details => {
+                details.open = state;
+            });
+        }
+
+        function exportDrilldown() {
+            if (!window.currentCoordinator || !window.appData[window.currentCoordinator]) {
+                alert("Please select a coordinator first.");
+                return;
+            }
+
+            const data = window.appData[window.currentCoordinator];
+            const exportRows = [];
+
+            for (const [regName, regData] of Object.entries(data.tree)) {
+                for (const [subName, subData] of Object.entries(regData.subregions)) {
+                    for (const [brName, brData] of Object.entries(subData.branches)) {
+                        brData.vros.forEach(vro => {
+                            const rowUrl = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '';
+                            exportRows.push({
+                                "Region": regName,
+                                "Subregion": subName,
+                                "Branch": brName,
+                                "Unit No": vro.unit,
+                                "Order No": vro.order || 'N/A',
+                                "Status": vro.status,
+                                "Message": vro.message,
+                                "Direct Link": rowUrl
+                            });
+                        });
+                    }
+                }
+            }
+
+            if (exportRows.length === 0) {
+                alert("No open repair orders to export for this coordinator.");
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(exportRows);
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for(let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const orderCell = XLSX.utils.encode_cell({c: 4, r: R});
+                const linkCell = XLSX.utils.encode_cell({c: 7, r: R});
+
+                if(ws[orderCell] && ws[orderCell].v !== 'N/A') {
+                    const url = `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${ws[orderCell].v}`;
+                    ws[orderCell].l = { Target: url };
+                    if(ws[linkCell]) ws[linkCell].l = { Target: url };
+                }
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Open Repairs");
+            XLSX.writeFile(wb, `Open_Repairs_${window.currentCoordinator.replace(/\s+/g, '_')}.xlsx`);
+        }
+
+        window.showDrilldown = function(name) {
+            window.currentCoordinator = name;
+            const data = window.appData[name];
+            
+            document.getElementById('drilldownTitle').innerText = name;
+            document.getElementById('drilldownToolbar').style.display = 'flex';
+            
+            const container = document.getElementById('drilldownContainer');
+            if (!data || Object.keys(data.tree).length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">No open repair orders found for this coordinator.</p>`;
+                document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
+            let html = '';
+            for (const [regName, regData] of Object.entries(data.tree)) {
+                if (regData.open === 0) continue; 
+
+                html += `
+                <details>
+                    <summary style="font-size: 1.1rem; color: var(--amerit-grey);">
+                        ${regName} <span class="badge status-yellow" style="margin-left: 10px;">${regData.open} Open</span>
+                    </summary>
+                    <div class="details-content">
+                `;
+
+                for (const [subName, subData] of Object.entries(regData.subregions)) {
+                    if (subData.open === 0) continue;
+
+                    html += `
+                    <details>
+                        <summary style="font-size: 1rem; color: #475569; background: #ffffff;">
+                            ${subName} <span class="badge" style="background:#e2e8f0; margin-left:10px;">${subData.open} Open</span>
+                        </summary>
+                        <div class="details-content">
+                    `;
+
+                    for (const [brName, brData] of Object.entries(subData.branches)) {
+                        if (brData.open === 0) continue;
+
+                        html += `
+                        <details>
+                            <summary style="font-size: 0.95rem; font-weight: 600; background: transparent; border: none; border-bottom: 1px solid #e2e8f0;">
+                                ${brName} <span class="text-open" style="margin-left:auto;">${brData.open} Open ROs</span>
+                            </summary>
+                            <table class="drill-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%;">Unit No</th>
+                                        <th style="width: 20%;">Order Number</th>
+                                        <th style="width: 20%;">Status</th>
+                                        <th style="width: 45%;">Message / Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        
+                        brData.vros.forEach(vro => {
+                            const orderLink = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '#';
+                            const orderHtml = vro.order 
+                                ? `<a href="${orderLink}" target="_blank" class="drill-link">${vro.order} ↗</a>` 
+                                : `<span style="color:var(--text-muted);">N/A</span>`;
+
+                            html += `
+                                <tr>
+                                    <td style="font-weight: 600;">${vro.unit}</td>
+                                    <td>${orderHtml}</td>
+                                    <td>${vro.status}</td>
+                                    <td style="color: #64748b;">${vro.message}</td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                </tbody>
+                            </table>
+                        </details>
+                        `;
+                    }
+                    html += `</div></details>`;
+                }
+                html += `</div></details>`;
+            }
+
+            container.innerHTML = html;
+            document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        function renderDashboard(coordinators) {
+            const kpiContainer = document.getElementById('kpiContainer');
+            const tableBody = document.getElementById('performanceTableBody');
+            
+            kpiContainer.innerHTML = ''; tableBody.innerHTML = '';
+
+            for (const [name, data] of Object.entries(coordinators)) {
+                let totalUsePct = 0; let totalUseCount = 0;
+                for (const reg of Object.values(data.tree)) {
+                    totalUsePct += reg.usefulPctSum;
+                    totalUseCount += reg.usefulCount;
+                }
+                const masterAvgUsefulness = totalUseCount > 0 ? (totalUsePct / totalUseCount) : 0;
+                let badgeClass = masterAvgUsefulness >= 110 ? 'status-green' : (masterAvgUsefulness >= 100 ? 'status-yellow' : 'status-red');
+                const totalActionable = data.open + data.compClosed;
+                const ratio = totalActionable === 0 ? 0 : Math.round((data.compClosed / totalActionable) * 100);
+
+                if (!data.isPMOnly) {
+                    const unassignedStyle = data.unassigned > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
+
+                    const trHTML = `
+                        <tr>
+                            <td style="font-weight: bold; font-size: 1.1rem; color: var(--amerit-grey);">${name}</td>
+                            <td style="text-align: center; font-size: 1.1rem;">${data.compClosed}</td>
+                            <td style="text-align: center; font-size: 1.1rem;">${data.open}</td>
+                            <td style="text-align: center; font-size: 1.1rem; color: #94a3b8;">${data.pending}</td>
+                            <td style="text-align: center; font-size: 1.1rem; ${unassignedStyle}">${data.unassigned}</td>
+                            <td style="text-align: center; font-weight: bold; font-size: 1.1rem;" class="${getColorClass(masterAvgUsefulness)}">${masterAvgUsefulness.toFixed(1)}%</td>
+                            <td style="text-align: center;"><span class="badge ${badgeClass}">${masterAvgUsefulness >= 110 ? 'On Target' : (masterAvgUsefulness >= 100 ? 'Warning' : 'Critical')}</span></td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += trHTML;
+                }
+
+                let detailsHTML = `<div class="usefulness-details">`;
+                let hasData = false;
+
+                for (const [regName, regData] of Object.entries(data.tree)) {
+                    hasData = true;
+                    let regAvg = regData.usefulCount > 0 ? (regData.usefulPctSum / regData.usefulCount) : 0;
+                    
+                    detailsHTML += `
+                        <div class="region-group">
+                            <div class="region-title loc-row">
+                                <span class="loc-name">${regName}</span>
+                                <span class="loc-open text-open">${regData.open}</span>
+                                <span class="loc-pct ${getColorClass(regAvg)}">${!data.isPMOnly && regAvg > 0 ? regAvg.toFixed(1) + '%' : ''}</span>
+                            </div>
+                    `;
+
+                    for (const [subName, subData] of Object.entries(regData.subregions)) {
+                        let subAvg = subData.usefulCount > 0 ? (subData.usefulPctSum / subData.usefulCount) : 0;
+                        
+                        detailsHTML += `
+                            <div class="subregion-title loc-row">
+                                <span class="loc-name">${subName}</span>
+                                <span class="loc-open" style="color: var(--amerit-yellow);">${subData.open}</span>
+                                <span class="loc-pct ${getColorClass(subAvg)}">${!data.isPMOnly && subAvg > 0 ? subAvg.toFixed(1) + '%' : ''}</span>
+                            </div>
+                        `;
+
+                        for (const [brName, brData] of Object.entries(subData.branches)) {
+                            detailsHTML += `
+                                <div class="branch-row loc-row">
+                                    <span class="loc-name">${brName}</span>
+                                    <span class="loc-open" style="font-weight: 600;">${brData.open}</span>
+                                    <span class="loc-pct ${getColorClass(brData.usefulPct)}">${!data.isPMOnly && brData.usefulPct !== null ? brData.usefulPct.toFixed(1) + '%' : ''}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                    detailsHTML += `</div>`; 
+                }
+
+                detailsHTML += `</div>`;
+                if (!hasData) {
+                    detailsHTML = `<div style="margin-top: 15px; font-size: 0.85rem; color: #64748b; text-align: center; padding-top: 10px; border-top: 1px solid var(--border-color); flex-grow: 1;">No active locations found.</div>`;
+                }
+
+                const tileHTML = `
+                    <div class="kpi-card" onclick="window.showDrilldown('${name}')">
+                        <h3>
+                            <div style="font-size: 1.1rem;">${name} ${data.isPMOnly ? '<span class="pm-badge">PM</span>' : ''}</div>
+                            ${!data.isPMOnly ? `<span class="badge ${badgeClass}">${masterAvgUsefulness.toFixed(1)}%</span>` : ''}
+                        </h3>
+                        <div class="kpi-stats">
+                            <div class="stat-box"><div class="stat-value">${data.open}</div><div class="stat-label">Open</div></div>
+                            <div class="stat-box"><div class="stat-value">${data.compClosed}</div><div class="stat-label">Comp/Closed</div></div>
+                            <div class="stat-box"><div class="stat-value">${ratio}%</div><div class="stat-label">Closure Rate</div></div>
+                        </div>
+                        ${detailsHTML}
+                    </div>
+                `;
+                kpiContainer.innerHTML += tileHTML;
+            }
+        }
+    </script>
+</body>
+</html>
