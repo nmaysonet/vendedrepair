@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSC - Vended Repair Performance Dashboard</title>
+    <title>Coordinator VRO Funnel & Accountability</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -71,7 +71,6 @@
         .loc-open { flex: 1; text-align: center; }
         .loc-pct { flex: 1; text-align: right; }
         
-        /* HEADER LABEL STYLE */
         .tile-labels { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid var(--border-color); padding-bottom: 2px; text-transform: uppercase; }
 
         .region-group { margin-bottom: 12px; }
@@ -111,7 +110,7 @@
 <body>
 
     <div class="header-brand">
-        <div>Vended Repair & PM Performance Dashboard</div>
+        <div>Coordinator Performance & Accountability</div>
         <div class="brand-tag">KEEP ON ROLLING&trade;</div>
     </div>
 
@@ -131,6 +130,7 @@
                         <th style="text-align: center;">Total Open Repairs</th>
                         <th style="text-align: center; color: #cbd5e1; font-weight: 400; font-size: 0.85rem;">(Of Open) Pending Estimates</th>
                         <th style="text-align: center; color: #cbd5e1; font-weight: 400; font-size: 0.85rem;">(Of Open) Unassigned</th>
+                        <th style="text-align: center; color: #cbd5e1; font-weight: 400; font-size: 0.85rem;"># AFS Repair Classes</th>
                         <th style="text-align: center;">Avg. Usefulness %</th>
                         <th style="text-align: center;">Status</th>
                     </tr>
@@ -288,11 +288,11 @@
             });
 
             const coordinators = {
-                'Brittany Williams': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
-                'James Hopkins': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
-                'Hollie Francis': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
-                'Ralph Mann': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {} },
-                'Kevin Anguzza': { open: 0, compClosed: 0, pending: 0, unassigned: 0, tree: {}, isPMOnly: true }
+                'Brittany Williams': { open: 0, compClosed: 0, pending: 0, unassigned: 0, afsRepairs: 0, tree: {} },
+                'James Hopkins': { open: 0, compClosed: 0, pending: 0, unassigned: 0, afsRepairs: 0, tree: {} },
+                'Hollie Francis': { open: 0, compClosed: 0, pending: 0, unassigned: 0, afsRepairs: 0, tree: {} },
+                'Ralph Mann': { open: 0, compClosed: 0, pending: 0, unassigned: 0, afsRepairs: 0, tree: {} },
+                'Kevin Anguzza': { open: 0, compClosed: 0, pending: 0, unassigned: 0, afsRepairs: 0, tree: {}, isPMOnly: true }
             };
 
             function getTreeNode(owner, reg, sub, br) {
@@ -310,6 +310,8 @@
                 let unitNumRaw = getSafeVal(vro, ['Unit No', 'UNIT NO', 'Unit', 'Vehicle', 'UNITNUMBER']);
                 let unitNum = normalizeString(unitNumRaw);
                 let orderNumRaw = getSafeVal(vro, ['Order', 'ORDER', 'Order No', 'RONUM']).toString().trim();
+                let repairClass = getSafeVal(vro, ['Type', 'TYPE', 'Class', 'Repair Class']).toString().trim();
+
                 if (!status || !unitNum) return;
                 if (status.includes('CREDIT VRO')) return;
 
@@ -320,15 +322,24 @@
                 else if (unitNum.endsWith('U') && unitToOwner[unitNum.slice(0, -1)]) { assignedTo = unitToOwner[unitNum.slice(0, -1)]; activeUnitForLoc = unitNum.slice(0, -1); }
 
                 if (assignedTo && coordinators[assignedTo]) {
-                    if (status.includes('FINAL CHARGE') || status.includes('COMPLETE') || status.includes('CLOSED')) { coordinators[assignedTo].compClosed++; } 
-                    else {
+                    if (status.includes('FINAL CHARGE') || status.includes('COMPLETE') || status.includes('CLOSED')) { 
+                        coordinators[assignedTo].compClosed++; 
+                    } else {
                         coordinators[assignedTo].open++;
                         if (status.includes('ESTIMATE')) coordinators[assignedTo].pending++;
                         if (status.includes('UNASSIGNED')) coordinators[assignedTo].unassigned++;
+                        if (repairClass.toUpperCase().includes('AFS REPAIR')) coordinators[assignedTo].afsRepairs++;
+
                         const loc = unitToLocation[activeUnitForLoc] || { region: 'Unknown Region', subregion: 'Unknown Subregion', branch: 'Unknown Branch' };
                         const node = getTreeNode(assignedTo, loc.region, loc.subregion, loc.branch);
                         node.r.open++; node.s.open++; node.b.open++;
-                        node.b.vros.push({ unit: unitNumRaw, order: orderNumRaw, status: status, message: getSafeVal(vro, ['Message', 'MESSAGE', 'Comment', 'COMMENT']) || 'None' });
+                        node.b.vros.push({ 
+                            unit: unitNumRaw, 
+                            order: orderNumRaw, 
+                            status: status, 
+                            repairClass: repairClass || 'None',
+                            message: getSafeVal(vro, ['Message', 'MESSAGE', 'Comment', 'COMMENT']) || 'None' 
+                        });
                     }
                 }
             });
@@ -368,6 +379,7 @@
                 const code = extractSiteCode(rawBranch);
                 let normSearch = normalizeString(branchClean);
                 if (aliasMap[normSearch]) normSearch = aliasMap[normSearch];
+                
                 const owner = codeToOwner[code] || branchToOwnerFallback[normSearch]; 
 
                 if (owner && coordinators[owner] && !isNaN(percent)) {
@@ -407,7 +419,7 @@
                             if (vro.unit.toLowerCase().includes(searchTerm)) {
                                 const rowUrl = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '';
                                 exportRows.push({
-                                    "Region": regName, "Subregion": subName, "Branch": brName, "Unit No": vro.unit, "Order No": vro.order || 'N/A', "Status": vro.status, "Message": vro.message, "Direct Link": rowUrl
+                                    "Region": regName, "Subregion": subName, "Branch": brName, "Unit No": vro.unit, "Order No": vro.order || 'N/A', "Repair Class": vro.repairClass, "Status": vro.status, "Message": vro.message, "Direct Link": rowUrl
                                 });
                             }
                         });
@@ -418,7 +430,7 @@
             const range = XLSX.utils.decode_range(ws['!ref']);
             for(let R = range.s.r + 1; R <= range.e.r; ++R) {
                 const orderCell = XLSX.utils.encode_cell({c: 4, r: R});
-                const linkCell = XLSX.utils.encode_cell({c: 7, r: R});
+                const linkCell = XLSX.utils.encode_cell({c: 8, r: R}); // Column I
                 if(ws[orderCell] && ws[orderCell].v !== 'N/A') {
                     const url = `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${ws[orderCell].v}`;
                     ws[orderCell].l = { Target: url };
@@ -469,9 +481,16 @@
                         filteredVros.forEach(vro => {
                             const orderLink = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '#';
                             const orderHtml = vro.order ? `<a href="${orderLink}" target="_blank" class="drill-link">${vro.order} ↗</a>` : `<span style="color:var(--text-muted);">N/A</span>`;
-                            vroRows += `<tr><td style="font-weight: 600;">${vro.unit}</td><td>${orderHtml}</td><td>${vro.status}</td><td style="color: #64748b;">${vro.message}</td></tr>`;
+                            
+                            // Highlight AFS Repair class
+                            let rcDisplay = vro.repairClass;
+                            if (rcDisplay.toUpperCase().includes('AFS REPAIR')) {
+                                rcDisplay = `<span style="color: var(--red-text); font-weight: bold;">${rcDisplay}</span>`;
+                            }
+
+                            vroRows += `<tr><td style="font-weight: 600;">${vro.unit}</td><td>${orderHtml}</td><td>${rcDisplay}</td><td>${vro.status}</td><td style="color: #64748b;">${vro.message}</td></tr>`;
                         });
-                        brHtml += `<details ${autoOpen}><summary style="font-size: 0.95rem; font-weight: 600; background: transparent; border: none; border-bottom: 1px solid #e2e8f0;">${brName} <span class="text-open" style="margin-left:auto;">${brOpenCount} Open ROs</span></summary><table class="drill-table"><thead><tr><th style="width: 15%;">Unit No</th><th style="width: 20%;">Order Number</th><th style="width: 20%;">Status</th><th style="width: 45%;">Message / Details</th></tr></thead><tbody>${vroRows}</tbody></table></details>`;
+                        brHtml += `<details ${autoOpen}><summary style="font-size: 0.95rem; font-weight: 600; background: transparent; border: none; border-bottom: 1px solid #e2e8f0;">${brName} <span class="text-open" style="margin-left:auto;">${brOpenCount} Open ROs</span></summary><table class="drill-table"><thead><tr><th style="width: 15%;">Unit No</th><th style="width: 15%;">Order Number</th><th style="width: 15%;">Repair Class</th><th style="width: 15%;">Status</th><th style="width: 40%;">Message / Details</th></tr></thead><tbody>${vroRows}</tbody></table></details>`;
                     }
                     if (subMatchCount > 0) {
                         regMatchCount += subMatchCount;
@@ -496,9 +515,21 @@
                 let badgeClass = masterAvgUsefulness >= 110 ? 'status-green' : (masterAvgUsefulness >= 100 ? 'status-yellow' : 'status-red');
                 const totalActionable = data.open + data.compClosed;
                 const ratio = totalActionable === 0 ? 0 : Math.round((data.compClosed / totalActionable) * 100);
+                
                 if (!data.isPMOnly) {
                     const unassignedStyle = data.unassigned > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
-                    tableBody.innerHTML += `<tr><td style="font-weight: bold; font-size: 1.1rem; color: var(--amerit-grey);">${name}</td><td style="text-align: center; font-size: 1.1rem;">${data.compClosed}</td><td style="text-align: center; font-size: 1.1rem;">${data.open}</td><td style="text-align: center; font-size: 1.1rem; color: #94a3b8;">${data.pending}</td><td style="text-align: center; font-size: 1.1rem; ${unassignedStyle}">${data.unassigned}</td><td style="text-align: center; font-weight: bold; font-size: 1.1rem;" class="${getColorClass(masterAvgUsefulness)}">${masterAvgUsefulness.toFixed(1)}%</td><td style="text-align: center;"><span class="badge ${badgeClass}">${masterAvgUsefulness >= 110 ? 'On Target' : (masterAvgUsefulness >= 100 ? 'Warning' : 'Critical')}</span></td></tr>`;
+                    const afsStyle = data.afsRepairs > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
+                    
+                    tableBody.innerHTML += `<tr>
+                        <td style="font-weight: bold; font-size: 1.1rem; color: var(--amerit-grey);">${name}</td>
+                        <td style="text-align: center; font-size: 1.1rem;">${data.compClosed}</td>
+                        <td style="text-align: center; font-size: 1.1rem;">${data.open}</td>
+                        <td style="text-align: center; font-size: 1.1rem; color: #94a3b8;">${data.pending}</td>
+                        <td style="text-align: center; font-size: 1.1rem; ${unassignedStyle}">${data.unassigned}</td>
+                        <td style="text-align: center; font-size: 1.1rem; ${afsStyle}">${data.afsRepairs}</td>
+                        <td style="text-align: center; font-weight: bold; font-size: 1.1rem;" class="${getColorClass(masterAvgUsefulness)}">${masterAvgUsefulness.toFixed(1)}%</td>
+                        <td style="text-align: center;"><span class="badge ${badgeClass}">${masterAvgUsefulness >= 110 ? 'On Target' : (masterAvgUsefulness >= 100 ? 'Warning' : 'Critical')}</span></td>
+                    </tr>`;
                 }
 
                 let detailsHTML = `<div class="usefulness-details">
@@ -529,4 +560,3 @@
     </script>
 </body>
 </html>
-
