@@ -49,10 +49,11 @@
         .status-red { background: var(--red-bg); color: var(--red-text); }
 
         .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 15px; margin-bottom: 30px; align-items: stretch; }
-        @media (max-width: 1400px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+        @media (max-width: 1550px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
+        
         .kpi-card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--amerit-grey); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; display: flex; flex-direction: column; }
         .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: var(--amerit-yellow); background: var(--blue-hover); }
-        .kpi-card h3 { font-size: 1rem; margin-top: 0; color: var(--amerit-grey); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .kpi-card h3 { font-size: 1.05rem; margin-top: 0; color: var(--amerit-grey); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .pm-badge { font-size: 0.75rem; color: #64748b; font-weight: normal; background: #e2e8f0; padding: 2px 6px; border-radius: 12px; margin-left: 5px; }
 
         .kpi-stats { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
@@ -60,26 +61,26 @@
         .stat-value { font-size: 1.4rem; color: var(--amerit-yellow); text-shadow: 1px 1px 1px rgba(0,0,0,0.8); margin-bottom: 2px; }
         .stat-label { font-size: 0.75rem; color: #64748b; line-height: 1.1;}
 
-        .usefulness-details { margin-top: 10px; font-size: 0.8rem; max-height: 500px; overflow-y: auto; border-top: 1px solid var(--border-color); padding-top: 10px; padding-right: 5px; flex-grow: 1; }
+        .usefulness-details { margin-top: 10px; font-size: 0.82rem; max-height: 550px; overflow-y: auto; border-top: 1px solid var(--border-color); padding-top: 10px; padding-right: 5px; flex-grow: 1; }
         .usefulness-details::-webkit-scrollbar { width: 5px; }
         .usefulness-details::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .usefulness-details::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        .loc-row { display: flex; align-items: center; justify-content: space-between; }
-        .loc-name { flex: 1.5; text-align: left; padding-right: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .loc-open { flex: 1; text-align: center; }
-        .loc-pct { flex: 1; text-align: right; }
+        .loc-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 4px 0; }
+        .loc-name { flex: 1.8; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .loc-open { flex: 0.6; text-align: center; font-weight: bold; }
+        .loc-pct { flex: 1; text-align: right; font-weight: bold; }
 
-        .region-group { margin-bottom: 12px; }
-        .region-title { font-weight: 700; color: var(--amerit-grey); border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 6px; font-size: 0.85rem;}
-        .subregion-title { font-weight: 700; color: #475569; padding-left: 5px; margin-bottom: 4px; }
-        .branch-row { padding: 3px 0 3px 10px; color: #475569; border-bottom: 1px dashed #f1f5f9; }
+        .region-group { margin-bottom: 15px; }
+        .region-title { font-weight: 900; color: var(--amerit-grey); border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;}
+        .subregion-title { font-weight: 700; color: #475569; padding-left: 5px; margin-bottom: 5px; background: #f8fafc; border-radius: 4px; padding: 3px 5px; }
+        .branch-row { padding: 2px 0 2px 12px; color: #475569; border-bottom: 1px dashed #f1f5f9; }
         .branch-row:last-child { border-bottom: none; }
         
-        .text-green { color: var(--green-text); font-weight: 700; }
-        .text-yellow { color: var(--yellow-text); font-weight: 700; }
-        .text-red { color: var(--red-text); font-weight: 700; }
-        .text-open { color: var(--secondary); font-weight: 700; }
+        .text-green { color: var(--green-text); }
+        .text-yellow { color: var(--yellow-text); }
+        .text-red { color: var(--red-text); }
+        .text-open { color: var(--secondary); }
 
         #drilldownSection { margin-top: 50px; }
         .drill-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--secondary); }
@@ -237,8 +238,12 @@
         }
 
         function cleanBranchName(str) {
-            // Strips trailing site codes like " 260-85"
             return (str || '').toString().replace(/\s+\d+-\d+$/, '').trim();
+        }
+
+        function extractSiteCode(str) {
+            const match = (str || '').toString().match(/(\d+-\d+)$/);
+            return match ? match[1] : null;
         }
 
         function processDashboardData(vroData, usefulnessRawData, regionOwnerData, cidOwnerData, cidData) {
@@ -262,17 +267,20 @@
                     if (cid && cidToOwner[cid.toString().trim().toUpperCase()]) {
                         unitToOwner[normUnit] = cidToOwner[cid.toString().trim().toUpperCase()];
                     }
-                    unitToLocation[normUnit] = { region: reg.toString().trim(), subregion: sub.toString().trim(), branch: cleanBranchName(br) };
+                    unitToLocation[normUnit] = { region: reg.toString().trim(), subregion: sub.toString().trim(), branch: cleanBranchName(br), siteCode: extractSiteCode(br) };
                 }
             });
 
-            const branchToOwner = {};
+            const siteCodeToOwner = {};
+            const branchToOwnerFallback = {};
             regionOwnerData.forEach(row => {
                 const branchRaw = getSafeVal(row, ['Branch', 'BRANCH', 'Location']);
                 const rawOwner = getSafeVal(row, ['Owner Coordinator', 'Owner', 'Coordinator', 'Employee Assigned']);
-                if (branchRaw && rawOwner) {
-                    // Clean branch name (remove site code) then normalize for mapping
-                    branchToOwner[normalizeString(cleanBranchName(branchRaw))] = getFullName(rawOwner);
+                const code = extractSiteCode(branchRaw);
+                if (rawOwner) {
+                    const fullName = getFullName(rawOwner);
+                    if (code) siteCodeToOwner[code] = fullName;
+                    branchToOwnerFallback[normalizeString(cleanBranchName(branchRaw))] = fullName;
                 }
             });
 
@@ -320,7 +328,7 @@
                 }
             });
 
-            // City-to-Facility Translation Map
+            // City-to-Facility Translation Bridge for Naming Mismatches
             const aliasMap = {
                 "BURLINGTON,VT": "SOUTHBURLINGTON,VT",
                 "GRANDRAPIDS,MI": "KENTWOOD,MI",
@@ -344,16 +352,19 @@
                 const region = (row[0] || '').toString().trim();
                 const subRegion = (row[1] || '').toString().trim();
                 const rawBranch = (row[2] || '').toString().trim();
-                let usefulPctStr = row[8] || row[20]; // Target the useful % column
+                let usefulPctStr = row[8] || row[20]; 
                 if (!rawBranch || rawBranch.toUpperCase() === 'GRAND TOTAL' || !usefulPctStr) return;
                 let pct = parseFloat(usefulPctStr);
                 if (pct <= 2) pct = pct * 100;
                 
                 const branchClean = cleanBranchName(rawBranch); 
+                const code = extractSiteCode(rawBranch);
                 let normSearch = normalizeString(branchClean);
                 if (aliasMap[normSearch]) normSearch = aliasMap[normSearch];
                 
-                const owner = branchToOwner[normSearch]; 
+                // Prioritize Code Matching, then fallback to normalized name matching
+                const owner = siteCodeToOwner[code] || branchToOwnerFallback[normSearch]; 
+
                 if (owner && coordinators[owner] && !isNaN(pct)) {
                     const node = getTreeNode(owner, region, subRegion || region, branchClean);
                     node.b.usefulPct = pct;
@@ -364,6 +375,12 @@
 
             window.appData = coordinators;
             renderDashboard(coordinators);
+        }
+
+        function getColorClass(val) {
+            if (val >= 110) return 'text-green';
+            if (val >= 100) return 'text-yellow';
+            return 'text-red';
         }
 
         function toggleAllDetails(state) {
@@ -436,7 +453,8 @@
                 for (const reg of Object.values(data.tree)) { uPct += reg.usefulPctSum; uCnt += reg.usefulCount; }
                 const avgU = uCnt > 0 ? (uPct / uCnt) : 0;
                 let bCls = avgU >= 110 ? 'status-green' : (avgU >= 100 ? 'status-yellow' : 'status-red');
-                const ratio = (data.open + data.compClosed) === 0 ? 0 : Math.round((data.compClosed / (data.open + data.compClosed)) * 100);
+                const totalActionable = data.open + data.compClosed;
+                const ratio = totalActionable === 0 ? 0 : Math.round((data.compClosed / totalActionable) * 100);
 
                 if (!data.isPMOnly) {
                     const uStyle = data.unassigned > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
