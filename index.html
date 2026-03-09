@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSC Coordinator Metrics & Performance</title>
+    <title>Coordinator VRO Funnel & Accountability</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,9 +37,6 @@
 
         .section-title { font-size: 1.25rem; color: var(--amerit-grey); margin-bottom: 15px; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
         .section-title.spaced { margin-top: 50px; margin-bottom: 30px; }
-
-        /* FIX: Removed display:none from here so it shows up when parent is unhidden */
-        .table-container { margin-bottom: 40px; }
 
         table { width: 100%; border-collapse: collapse; background: var(--card-bg); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
@@ -83,7 +80,6 @@
         .text-red { color: var(--red-text); font-weight: 700; }
         .text-open { color: var(--secondary); font-weight: 700; }
 
-        /* FIX: Removed display:none from here so it shows up when parent is unhidden */
         #drilldownSection { margin-top: 50px; }
         .drill-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--secondary); }
         details { margin-bottom: 8px; }
@@ -110,7 +106,7 @@
 <body>
 
     <div class="header-brand">
-        <div>Operations Support Center - Vended Repair & PM Performance Metrics</div>
+        <div>Coordinator Performance & Accountability</div>
         <div class="brand-tag">KEEP ON ROLLING&trade;</div>
     </div>
 
@@ -169,8 +165,8 @@
         window.appData = {};
         window.currentCoordinator = null;
 
+        // Auto-fetch data on page load
         window.onload = function() {
-            // Adds a cache-buster so GitHub Pages always pulls the newest Excel file
             fetch('master_data.xlsx?v=' + new Date().getTime())
                 .then(response => {
                     if (!response.ok) throw new Error("Could not find master_data.xlsx in the repository.");
@@ -242,10 +238,7 @@
 
             if (vroData.length > 0 && cidData.length > 0 && cidOwnerData.length > 0) {
                 document.getElementById('loadingBanner').style.display = 'none';
-                
-                // This will unhide the parent wrapper, which now gracefully reveals all children elements
                 document.getElementById('dashboardContent').style.display = 'block';
-                
                 processDashboardData(vroData, usefulnessRawData, regionOwnerData, cidOwnerData, cidData);
             } else {
                 document.getElementById('loadingBanner').innerHTML = `<span style="color: var(--red-text);">Error: Found tabs, but data appears empty.</span>`;
@@ -365,6 +358,25 @@
                 }
             });
 
+            // Dictionary to map Tab 2 names to Tab 3 actual branch names
+            const branchAliasMap = {
+                "BURLINGTON,VT": "SOUTHBURLINGTON,VT",
+                "GRANDRAPIDS,MI": "KENTWOOD,MI",
+                "COLUMBUS,OH": "WHITEHALL,OH",
+                "FT.WAYNE,IN": "FORTWAYNE,IN",
+                "JACKSON,MS": "RICHLAND,MS",
+                "NEWORLEANS,LA": "ELMWOOD,LA",
+                "BIRMINGHAM,AL": "HOMEWOOD,AL",
+                "CHARLESTON,SC": "NORTHCHARLESTON,SC",
+                "ROANOKE,VA": "SALEM,VA",
+                "MT.VERNON,WA": "MOUNTVERNON,WA",
+                "YAKIMA,WA": "UNIONGAP,WA",
+                "MEDFORD,OR": "CENTRALPOINT,OR",
+                "SALTLAKECITY,UT": "WESTVALLEY,UT",
+                "GREENBAY,WI": "DEPERE,WI",
+                "KANSASCITY,KS": "KANSASCITY,MO"
+            };
+
             usefulnessRawData.forEach(row => {
                 if (!row || row.length < 9) return;
                 const region = (row[0] || '').toString().trim();
@@ -378,9 +390,15 @@
                 if (usefulPctStr.toString().includes('%')) percent = parseFloat(usefulPctStr.toString().replace('%', ''));
                 else if (percent <= 2) percent = percent * 100;
 
-                const normalizedTab2Branch = normalizeString(rawBranch);
-                const owner = branchToOwner[normalizedTab2Branch]; 
                 const branchClean = cleanBranchName(rawBranch); 
+                let normBase = normalizeString(branchClean);
+                
+                // Apply the bridge mapping
+                if (branchAliasMap[normBase]) {
+                    normBase = branchAliasMap[normBase];
+                }
+
+                const owner = branchToOwner[normBase]; 
                 const groupName = subRegion || region; 
 
                 if (owner && coordinators[owner] && !isNaN(percent)) {
@@ -687,5 +705,3 @@
     </script>
 </body>
 </html>
-
-
