@@ -39,6 +39,7 @@
         .section-title.spaced { margin-top: 50px; margin-bottom: 30px; }
 
         .table-container { margin-bottom: 40px; }
+
         table { width: 100%; border-collapse: collapse; background: var(--card-bg); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
         th { background-color: var(--amerit-grey); color: white; font-weight: 600; }
@@ -49,11 +50,10 @@
         .status-red { background: var(--red-bg); color: var(--red-text); }
 
         .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 15px; margin-bottom: 30px; align-items: stretch; }
-        @media (max-width: 1550px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } }
-        
+        @media (max-width: 1400px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
         .kpi-card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--amerit-grey); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; display: flex; flex-direction: column; }
         .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: var(--amerit-yellow); background: var(--blue-hover); }
-        .kpi-card h3 { font-size: 1.05rem; margin-top: 0; color: var(--amerit-grey); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .kpi-card h3 { font-size: 1rem; margin-top: 0; color: var(--amerit-grey); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .pm-badge { font-size: 0.75rem; color: #64748b; font-weight: normal; background: #e2e8f0; padding: 2px 6px; border-radius: 12px; margin-left: 5px; }
 
         .kpi-stats { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
@@ -61,30 +61,29 @@
         .stat-value { font-size: 1.4rem; color: var(--amerit-yellow); text-shadow: 1px 1px 1px rgba(0,0,0,0.8); margin-bottom: 2px; }
         .stat-label { font-size: 0.75rem; color: #64748b; line-height: 1.1;}
 
-        .usefulness-details { margin-top: 10px; font-size: 0.82rem; max-height: 550px; overflow-y: auto; border-top: 1px solid var(--border-color); padding-top: 10px; padding-right: 5px; flex-grow: 1; }
+        .usefulness-details { margin-top: 10px; font-size: 0.8rem; max-height: 500px; overflow-y: auto; border-top: 1px solid var(--border-color); padding-top: 10px; padding-right: 5px; flex-grow: 1; }
         .usefulness-details::-webkit-scrollbar { width: 5px; }
         .usefulness-details::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .usefulness-details::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        .loc-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 4px 0; }
-        .loc-name { flex: 1.8; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .loc-open { flex: 0.6; text-align: center; font-weight: bold; }
-        .loc-pct { flex: 1; text-align: right; font-weight: bold; }
+        .loc-row { display: flex; align-items: center; justify-content: space-between; }
+        .loc-name { flex: 1.5; text-align: left; padding-right: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .loc-open { flex: 1; text-align: center; }
+        .loc-pct { flex: 1; text-align: right; }
 
-        .region-group { margin-bottom: 15px; }
-        .region-title { font-weight: 900; color: var(--amerit-grey); border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;}
-        .subregion-title { font-weight: 700; color: #475569; padding-left: 5px; margin-bottom: 5px; background: #f8fafc; border-radius: 4px; padding: 3px 5px; }
-        .branch-row { padding: 2px 0 2px 12px; color: #475569; border-bottom: 1px dashed #f1f5f9; }
+        .region-group { margin-bottom: 12px; }
+        .region-title { font-weight: 700; color: var(--amerit-grey); border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 6px; font-size: 0.85rem;}
+        .subregion-title { font-weight: 700; color: #475569; padding-left: 5px; margin-bottom: 4px; }
+        .branch-row { padding: 3px 0 3px 10px; color: #475569; border-bottom: 1px dashed #f1f5f9; }
         .branch-row:last-child { border-bottom: none; }
         
-        .text-green { color: var(--green-text); }
-        .text-yellow { color: var(--yellow-text); }
-        .text-red { color: var(--red-text); }
-        .text-open { color: var(--secondary); }
+        .text-green { color: var(--green-text); font-weight: 700; }
+        .text-yellow { color: var(--yellow-text); font-weight: 700; }
+        .text-red { color: var(--red-text); font-weight: 700; }
+        .text-open { color: var(--secondary); font-weight: 700; }
 
         #drilldownSection { margin-top: 50px; }
         .drill-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--secondary); }
-        
         details { margin-bottom: 8px; }
         summary { cursor: pointer; font-weight: bold; background: #f8fafc; padding: 12px; border-radius: 4px; display: flex; align-items: center; border: 1px solid var(--border-color); transition: background 0.2s; user-select: none; }
         summary:hover { background: #f1f5f9; }
@@ -101,6 +100,7 @@
         
         .action-btn { background-color: #f1f5f9; color: var(--amerit-grey); border: 1px solid var(--border-color); padding: 8px 16px; font-size: 0.9rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: 'Raleway', sans-serif;}
         .action-btn:hover { background-color: #e2e8f0; }
+        .action-btn:focus { outline: 2px solid var(--amerit-yellow); }
         .export-btn { background-color: #16a34a; color: white; border: none; padding: 8px 16px; font-size: 0.9rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: 'Raleway', sans-serif;}
         .export-btn:hover { background-color: #15803d; }
     </style>
@@ -267,19 +267,25 @@
                     if (cid && cidToOwner[cid.toString().trim().toUpperCase()]) {
                         unitToOwner[normUnit] = cidToOwner[cid.toString().trim().toUpperCase()];
                     }
-                    unitToLocation[normUnit] = { region: reg.toString().trim(), subregion: sub.toString().trim(), branch: cleanBranchName(br), siteCode: extractSiteCode(br) };
+                    unitToLocation[normUnit] = { 
+                        region: reg.toString().trim(), 
+                        subregion: sub.toString().trim(), 
+                        branch: cleanBranchName(br),
+                        siteCode: extractSiteCode(br)
+                    };
                 }
             });
 
-            const siteCodeToOwner = {};
+            // Map site code to coordinator
+            const codeToOwner = {};
             const branchToOwnerFallback = {};
             regionOwnerData.forEach(row => {
                 const branchRaw = getSafeVal(row, ['Branch', 'BRANCH', 'Location']);
                 const rawOwner = getSafeVal(row, ['Owner Coordinator', 'Owner', 'Coordinator', 'Employee Assigned']);
-                const code = extractSiteCode(branchRaw);
                 if (rawOwner) {
                     const fullName = getFullName(rawOwner);
-                    if (code) siteCodeToOwner[code] = fullName;
+                    const code = extractSiteCode(branchRaw);
+                    if (code) codeToOwner[code] = fullName;
                     branchToOwnerFallback[normalizeString(cleanBranchName(branchRaw))] = fullName;
                 }
             });
@@ -308,15 +314,22 @@
                 let unitNum = normalizeString(unitNumRaw);
                 let orderNumRaw = getSafeVal(vro, ['Order', 'ORDER', 'Order No', 'RONUM']).toString().trim();
                 if (!status || !unitNum || status.includes('CREDIT VRO')) return;
+                
                 let assignedTo = null;
                 let activeUnitForLoc = unitNum;
-                if (ownerRaw.includes('kanguzza') || ownerRaw.includes('kevin anguzza')) { assignedTo = 'Kevin Anguzza'; } 
-                else if (unitToOwner[unitNum]) { assignedTo = unitToOwner[unitNum]; } 
-                else if (unitNum.endsWith('U') && unitToOwner[unitNum.slice(0, -1)]) { assignedTo = unitToOwner[unitNum.slice(0, -1)]; activeUnitForLoc = unitNum.slice(0, -1); }
+                
+                if (ownerRaw.includes('kanguzza') || ownerRaw.includes('kevin anguzza')) { 
+                    assignedTo = 'Kevin Anguzza'; 
+                } else if (unitToOwner[unitNum]) { 
+                    assignedTo = unitToOwner[unitNum]; 
+                } else if (unitNum.endsWith('U') && unitToOwner[unitNum.slice(0, -1)]) { 
+                    assignedTo = unitToOwner[unitNum.slice(0, -1)]; activeUnitForLoc = unitNum.slice(0, -1); 
+                }
 
                 if (assignedTo && coordinators[assignedTo]) {
-                    if (status.includes('FINAL CHARGE') || status.includes('COMPLETE') || status.includes('CLOSED')) { coordinators[assignedTo].compClosed++; } 
-                    else {
+                    if (status.includes('FINAL CHARGE') || status.includes('COMPLETE') || status.includes('CLOSED')) { 
+                        coordinators[assignedTo].compClosed++; 
+                    } else {
                         coordinators[assignedTo].open++;
                         if (status.includes('ESTIMATE')) coordinators[assignedTo].pending++;
                         if (status.includes('UNASSIGNED')) coordinators[assignedTo].unassigned++;
@@ -328,42 +341,23 @@
                 }
             });
 
-            // City-to-Facility Translation Bridge for Naming Mismatches
-            const aliasMap = {
-                "BURLINGTON,VT": "SOUTHBURLINGTON,VT",
-                "GRANDRAPIDS,MI": "KENTWOOD,MI",
-                "COLUMBUS,OH": "WHITEHALL,OH",
-                "FT.WAYNE,IN": "FORTWAYNE,IN",
-                "JACKSON,MS": "RICHLAND,MS",
-                "NEWORLEANS,LA": "ELMWOOD,LA",
-                "BIRMINGHAM,AL": "HOMEWOOD,AL",
-                "CHARLESTON,SC": "NORTHCHARLESTON,SC",
-                "ROANOKE,VA": "SALEM,VA",
-                "MT.VERNON,WA": "MOUNTVERNON,WA",
-                "YAKIMA,WA": "UNIONGAP,WA",
-                "MEDFORD,OR": "CENTRALPOINT,OR",
-                "SALTLAKECITY,UT": "WESTVALLEY,UT",
-                "GREENBAY,WI": "DEPERE,WI",
-                "KANSASCITY,KS": "KANSASCITY,MO"
-            };
-
             usefulnessRawData.forEach(row => {
                 if (!row || row.length < 9) return;
                 const region = (row[0] || '').toString().trim();
                 const subRegion = (row[1] || '').toString().trim();
                 const rawBranch = (row[2] || '').toString().trim();
                 let usefulPctStr = row[8] || row[20]; 
-                if (!rawBranch || rawBranch.toUpperCase() === 'GRAND TOTAL' || !usefulPctStr) return;
+                
+                if (!rawBranch || rawBranch.toUpperCase() === 'GRAND TOTAL' || usefulPctStr === undefined) return;
+                
                 let pct = parseFloat(usefulPctStr);
                 if (pct <= 2) pct = pct * 100;
                 
                 const branchClean = cleanBranchName(rawBranch); 
                 const code = extractSiteCode(rawBranch);
-                let normSearch = normalizeString(branchClean);
-                if (aliasMap[normSearch]) normSearch = aliasMap[normSearch];
                 
-                // Prioritize Code Matching, then fallback to normalized name matching
-                const owner = siteCodeToOwner[code] || branchToOwnerFallback[normSearch]; 
+                // FIXED MATCHING LOGIC: Match by Site Code FIRST, then fallback to clean name normalization
+                const owner = codeToOwner[code] || branchToOwnerFallback[normalizeString(branchClean)];
 
                 if (owner && coordinators[owner] && !isNaN(pct)) {
                     const node = getTreeNode(owner, region, subRegion || region, branchClean);
@@ -453,8 +447,7 @@
                 for (const reg of Object.values(data.tree)) { uPct += reg.usefulPctSum; uCnt += reg.usefulCount; }
                 const avgU = uCnt > 0 ? (uPct / uCnt) : 0;
                 let bCls = avgU >= 110 ? 'status-green' : (avgU >= 100 ? 'status-yellow' : 'status-red');
-                const totalActionable = data.open + data.compClosed;
-                const ratio = totalActionable === 0 ? 0 : Math.round((data.compClosed / totalActionable) * 100);
+                const ratio = (data.open + data.compClosed) === 0 ? 0 : Math.round((data.compClosed / (data.open + data.compClosed)) * 100);
 
                 if (!data.isPMOnly) {
                     const uStyle = data.unassigned > 0 ? 'color: var(--red-text); font-weight: bold;' : 'color: #94a3b8;';
@@ -464,10 +457,10 @@
                 let dHtml = `<div class="usefulness-details">`;
                 for (const [r, rd] of Object.entries(data.tree)) {
                     let rA = rd.usefulCount > 0 ? (rd.usefulPctSum / rd.usefulCount) : 0;
-                    dHtml += `<div class="region-group"><div class="region-title loc-row"><span class="loc-name">${r}</span><span class="loc-open text-open">${rd.open}</span><span class="loc-pct ${getColorClass(rA)}">${!data.isPMOnly && rA > 0 ? rA.toFixed(1) + '%' : ''}</span></div>`;
+                    dHtml += `<div class="region-group"><div class="region-title loc-row"><span class="loc-name">${r}</span><span class="loc-open text-open">${rd.open} Open</span><span class="loc-pct ${getColorClass(rA)}">${!data.isPMOnly && rA > 0 ? rA.toFixed(1) + '%' : ''}</span></div>`;
                     for (const [s, sd] of Object.entries(rd.subregions)) {
                         let sA = sd.usefulCount > 0 ? (sd.usefulPctSum / sd.usefulCount) : 0;
-                        dHtml += `<div class="subregion-title loc-row"><span class="loc-name">${s}</span><span class="loc-open" style="color:var(--amerit-yellow);">${sd.open}</span><span class="loc-pct ${getColorClass(sA)}">${!data.isPMOnly && sA > 0 ? sA.toFixed(1) + '%' : ''}</span></div>`;
+                        dHtml += `<div class="subregion-title loc-row"><span class="loc-name">${s}</span><span class="loc-open" style="color:var(--amerit-yellow);">${sd.open} Open</span><span class="loc-pct ${getColorClass(sA)}">${!data.isPMOnly && sA > 0 ? sA.toFixed(1) + '%' : ''}</span></div>`;
                         for (const [b, bd] of Object.entries(sd.branches)) {
                             dHtml += `<div class="branch-row loc-row"><span class="loc-name">${b}</span><span class="loc-open" style="font-weight:600;">${bd.open}</span><span class="loc-pct ${getColorClass(bd.usefulPct)}">${!data.isPMOnly && bd.usefulPct !== null ? bd.usefulPct.toFixed(1) + '%' : ''}</span></div>`;
                         }
@@ -476,7 +469,7 @@
                 }
                 dHtml += `</div>`;
 
-                kpiContainer.innerHTML += `<div class="kpi-card" onclick="window.showDrilldown('${name}')"><h3><div style="font-size:1.1rem;">${name} ${data.isPMOnly ? '<span class="pm-badge">PM</span>' : ''}</div>${!data.isPMOnly ? `<span class="badge ${bCls}">${avgU.toFixed(1)}%</span>` : ''}</h3><div class="kpi-stats"><div class="stat-box"><div class="stat-value">${data.open}</div><div class="stat-label">Open</div></div><div class="stat-box"><div class="stat-value">${data.compClosed}</div><div class="stat-label">Comp/Closed</div></div><div class="stat-box"><div class="stat-value">${ratio}%</div><div class="stat-label">Rate</div></div></div>${dHtml}</div>`;
+                kpiContainer.innerHTML += `<div class="kpi-card" onclick="window.showDrilldown('${name}')"><h3><div style="font-size:1.1rem;">${name} ${data.isPMOnly ? '<span class="pm-badge">PM</span>' : ''}</div>${!data.isPMOnly ? `<span class="badge ${badgeClass}">${avgU.toFixed(1)}%</span>` : ''}</h3><div class="kpi-stats"><div class="stat-box"><div class="stat-value">${data.open}</div><div class="stat-label">Open</div></div><div class="stat-box"><div class="stat-value">${data.compClosed}</div><div class="stat-label">Comp/Closed</div></div><div class="stat-box"><div class="stat-value">${ratio}%</div><div class="stat-label">Closure Rate</div></div></div>${dHtml}</div>`;
             }
         }
     </script>
