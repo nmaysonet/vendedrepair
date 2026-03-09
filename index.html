@@ -33,7 +33,6 @@
         .header-brand { font-size: 1.5rem; font-weight: 900; color: var(--amerit-grey); border-bottom: 4px solid var(--amerit-yellow); padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
         .brand-tag { font-size: 1rem; font-style: italic; color: var(--amerit-yellow); background: var(--amerit-grey); padding: 4px 12px; border-radius: 4px; }
 
-        /* Loading Banner */
         #loadingBanner { background: var(--card-bg); padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 30px; border: 2px dashed var(--amerit-yellow); text-align: center; font-size: 1.2rem; font-weight: bold; color: var(--amerit-grey); }
 
         .section-title { font-size: 1.25rem; color: var(--amerit-grey); margin-bottom: 15px; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
@@ -81,7 +80,7 @@
         .text-red { color: var(--red-text); font-weight: 700; }
         .text-open { color: var(--secondary); font-weight: 700; }
 
-        #drilldownSection { margin-top: 50px; display: none; }
+        #drilldownSection { margin-top: 50px; }
         .drill-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid var(--secondary); }
         details { margin-bottom: 8px; }
         summary { cursor: pointer; font-weight: bold; background: #f8fafc; padding: 12px; border-radius: 4px; display: flex; align-items: center; border: 1px solid var(--border-color); transition: background 0.2s; user-select: none; }
@@ -99,6 +98,7 @@
         
         .action-btn { background-color: #f1f5f9; color: var(--amerit-grey); border: 1px solid var(--border-color); padding: 8px 16px; font-size: 0.9rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: 'Raleway', sans-serif;}
         .action-btn:hover { background-color: #e2e8f0; }
+        .action-btn:focus { outline: 2px solid var(--amerit-yellow); }
         .export-btn { background-color: #16a34a; color: white; border: none; padding: 8px 16px; font-size: 0.9rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: 0.2s; font-family: 'Raleway', sans-serif;}
         .export-btn:hover { background-color: #15803d; }
     </style>
@@ -143,15 +143,18 @@
 
         <div id="drilldownSection">
             <div class="section-title">Open Repairs Drilldown: <span id="drilldownTitle" style="color: #0284c7;">Select a Coordinator</span></div>
-            <div id="drilldownToolbar" style="display: none; justify-content: space-between; margin-bottom: 15px; align-items: center;">
-                <div>
-                    <button class="action-btn" onclick="toggleAllDetails(true)">Expand All Folders</button>
-                    <button class="action-btn" style="margin-left: 10px;" onclick="toggleAllDetails(false)">Collapse All Folders</button>
+            
+            <div id="drilldownToolbar" style="display: none; justify-content: space-between; margin-bottom: 15px; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="action-btn" onclick="toggleAllDetails(true)">Expand All</button>
+                    <button class="action-btn" onclick="toggleAllDetails(false)">Collapse All</button>
+                    <input type="text" id="unitSearchInput" placeholder="🔍 Search Unit Number..." class="action-btn" style="text-align: left; min-width: 250px; cursor: text; background: #fff;" oninput="updateDrilldownView()">
                 </div>
                 <button class="export-btn" onclick="exportDrilldown()">📥 Export to Excel</button>
             </div>
+
             <div class="drill-container" id="drilldownContainer">
-                <p style="color: var(--text-muted); text-align: center; font-style: italic;">Click a coordinator's tile above to view their open repair orders by location.</p>
+                <p style="color: var(--text-muted); text-align: center; font-style: italic; margin: 0;">Click a coordinator's tile above to view their open repair orders by location.</p>
             </div>
         </div>
     </div>
@@ -162,7 +165,6 @@
 
         // Auto-fetch data on page load
         window.onload = function() {
-            // Point this exactly to the filename you uploaded to GitHub
             fetch('master_data.xlsx')
                 .then(response => {
                     if (!response.ok) throw new Error("Could not find master_data.xlsx in the repository.");
@@ -233,7 +235,6 @@
             let usefulnessRawData = extractUsefulnessTab(sheetUse);
 
             if (vroData.length > 0 && cidData.length > 0 && cidOwnerData.length > 0) {
-                // Hide loader and show content
                 document.getElementById('loadingBanner').style.display = 'none';
                 document.getElementById('dashboardContent').style.display = 'block';
                 
@@ -407,29 +408,32 @@
 
             const data = window.appData[window.currentCoordinator];
             const exportRows = [];
+            const searchTerm = document.getElementById('unitSearchInput').value.toLowerCase().trim();
 
             for (const [regName, regData] of Object.entries(data.tree)) {
                 for (const [subName, subData] of Object.entries(regData.subregions)) {
                     for (const [brName, brData] of Object.entries(subData.branches)) {
                         brData.vros.forEach(vro => {
-                            const rowUrl = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '';
-                            exportRows.push({
-                                "Region": regName,
-                                "Subregion": subName,
-                                "Branch": brName,
-                                "Unit No": vro.unit,
-                                "Order No": vro.order || 'N/A',
-                                "Status": vro.status,
-                                "Message": vro.message,
-                                "Direct Link": rowUrl
-                            });
+                            if (vro.unit.toLowerCase().includes(searchTerm)) {
+                                const rowUrl = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '';
+                                exportRows.push({
+                                    "Region": regName,
+                                    "Subregion": subName,
+                                    "Branch": brName,
+                                    "Unit No": vro.unit,
+                                    "Order No": vro.order || 'N/A',
+                                    "Status": vro.status,
+                                    "Message": vro.message,
+                                    "Direct Link": rowUrl
+                                });
+                            }
                         });
                     }
                 }
             }
 
             if (exportRows.length === 0) {
-                alert("No open repair orders to export for this coordinator.");
+                alert("No open repair orders match your search to export.");
                 return;
             }
 
@@ -453,48 +457,78 @@
 
         window.showDrilldown = function(name) {
             window.currentCoordinator = name;
-            const data = window.appData[name];
-            
             document.getElementById('drilldownTitle').innerText = name;
             document.getElementById('drilldownToolbar').style.display = 'flex';
             
+            // Clear search box on new coordinator selection
+            document.getElementById('unitSearchInput').value = '';
+            
+            updateDrilldownView();
+            document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        // Live filtering logic
+        window.updateDrilldownView = function() {
+            const name = window.currentCoordinator;
+            if (!name) return;
+
+            const data = window.appData[name];
             const container = document.getElementById('drilldownContainer');
+            const searchTerm = document.getElementById('unitSearchInput').value.toLowerCase().trim();
+            const autoOpen = searchTerm.length > 0 ? 'open' : ''; // Auto-expand folders if searching
+            
             if (!data || Object.keys(data.tree).length === 0) {
-                container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">No open repair orders found for this coordinator.</p>`;
-                document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
+                container.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin: 0;">No open repair orders found for this coordinator.</p>`;
                 return;
             }
 
             let html = '';
+            let totalMatches = 0;
+
             for (const [regName, regData] of Object.entries(data.tree)) {
                 if (regData.open === 0) continue; 
 
-                html += `
-                <details>
-                    <summary style="font-size: 1.1rem; color: var(--amerit-grey);">
-                        ${regName} <span class="badge status-yellow" style="margin-left: 10px;">${regData.open} Open</span>
-                    </summary>
-                    <div class="details-content">
-                `;
+                let subHtml = '';
+                let regMatchCount = 0;
 
                 for (const [subName, subData] of Object.entries(regData.subregions)) {
                     if (subData.open === 0) continue;
 
-                    html += `
-                    <details>
-                        <summary style="font-size: 1rem; color: #475569; background: #ffffff;">
-                            ${subName} <span class="badge" style="background:#e2e8f0; margin-left:10px;">${subData.open} Open</span>
-                        </summary>
-                        <div class="details-content">
-                    `;
+                    let brHtml = '';
+                    let subMatchCount = 0;
 
                     for (const [brName, brData] of Object.entries(subData.branches)) {
                         if (brData.open === 0) continue;
 
-                        html += `
-                        <details>
+                        // Filter the rows
+                        const filteredVros = brData.vros.filter(vro => vro.unit.toLowerCase().includes(searchTerm));
+                        
+                        if (filteredVros.length === 0) continue; 
+
+                        const brOpenCount = filteredVros.length;
+                        subMatchCount += brOpenCount;
+
+                        let vroRows = '';
+                        filteredVros.forEach(vro => {
+                            const orderLink = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '#';
+                            const orderHtml = vro.order 
+                                ? `<a href="${orderLink}" target="_blank" class="drill-link">${vro.order} ↗</a>` 
+                                : `<span style="color:var(--text-muted);">N/A</span>`;
+
+                            vroRows += `
+                                <tr>
+                                    <td style="font-weight: 600;">${vro.unit}</td>
+                                    <td>${orderHtml}</td>
+                                    <td>${vro.status}</td>
+                                    <td style="color: #64748b;">${vro.message}</td>
+                                </tr>
+                            `;
+                        });
+
+                        brHtml += `
+                        <details ${autoOpen}>
                             <summary style="font-size: 0.95rem; font-weight: 600; background: transparent; border: none; border-bottom: 1px solid #e2e8f0;">
-                                ${brName} <span class="text-open" style="margin-left:auto;">${brData.open} Open ROs</span>
+                                ${brName} <span class="text-open" style="margin-left:auto;">${brOpenCount} Open ROs</span>
                             </summary>
                             <table class="drill-table">
                                 <thead>
@@ -506,37 +540,48 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                        `;
-                        
-                        brData.vros.forEach(vro => {
-                            const orderLink = vro.order ? `https://afshub.azurewebsites.net/Vendors/VendedRepairOrder/Estimate/${vro.order}` : '#';
-                            const orderHtml = vro.order 
-                                ? `<a href="${orderLink}" target="_blank" class="drill-link">${vro.order} ↗</a>` 
-                                : `<span style="color:var(--text-muted);">N/A</span>`;
-
-                            html += `
-                                <tr>
-                                    <td style="font-weight: 600;">${vro.unit}</td>
-                                    <td>${orderHtml}</td>
-                                    <td>${vro.status}</td>
-                                    <td style="color: #64748b;">${vro.message}</td>
-                                </tr>
-                            `;
-                        });
-
-                        html += `
+                                    ${vroRows}
                                 </tbody>
                             </table>
                         </details>
                         `;
                     }
-                    html += `</div></details>`;
+
+                    if (subMatchCount > 0) {
+                        regMatchCount += subMatchCount;
+                        subHtml += `
+                        <details ${autoOpen}>
+                            <summary style="font-size: 1rem; color: #475569; background: #ffffff;">
+                                ${subName} <span class="badge" style="background:#e2e8f0; margin-left:10px;">${subMatchCount} Open</span>
+                            </summary>
+                            <div class="details-content">
+                                ${brHtml}
+                            </div>
+                        </details>
+                        `;
+                    }
                 }
-                html += `</div></details>`;
+
+                if (regMatchCount > 0) {
+                    totalMatches += regMatchCount;
+                    html += `
+                    <details ${autoOpen}>
+                        <summary style="font-size: 1.1rem; color: var(--amerit-grey);">
+                            ${regName} <span class="badge status-yellow" style="margin-left: 10px;">${regMatchCount} Open</span>
+                        </summary>
+                        <div class="details-content">
+                            ${subHtml}
+                        </div>
+                    </details>
+                    `;
+                }
             }
 
-            container.innerHTML = html;
-            document.getElementById('drilldownSection').scrollIntoView({ behavior: 'smooth' });
+            if (html === '') {
+                container.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin: 0; padding: 20px;">No matching unit numbers found for "${document.getElementById('unitSearchInput').value}".</p>`;
+            } else {
+                container.innerHTML = html;
+            }
         };
 
         function renderDashboard(coordinators) {
@@ -584,7 +629,7 @@
                         <div class="region-group">
                             <div class="region-title loc-row">
                                 <span class="loc-name">${regName}</span>
-                                <span class="loc-open text-open">${regData.open}</span>
+                                <span class="loc-open text-open">${regData.open} Open</span>
                                 <span class="loc-pct ${getColorClass(regAvg)}">${!data.isPMOnly && regAvg > 0 ? regAvg.toFixed(1) + '%' : ''}</span>
                             </div>
                     `;
@@ -595,7 +640,7 @@
                         detailsHTML += `
                             <div class="subregion-title loc-row">
                                 <span class="loc-name">${subName}</span>
-                                <span class="loc-open" style="color: var(--amerit-yellow);">${subData.open}</span>
+                                <span class="loc-open" style="color: var(--amerit-yellow);">${subData.open} Open</span>
                                 <span class="loc-pct ${getColorClass(subAvg)}">${!data.isPMOnly && subAvg > 0 ? subAvg.toFixed(1) + '%' : ''}</span>
                             </div>
                         `;
